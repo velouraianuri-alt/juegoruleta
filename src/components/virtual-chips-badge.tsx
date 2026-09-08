@@ -5,7 +5,7 @@ export function VirtualChipsBadge({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "pointer-events-none fixed bottom-3 left-1/2 z-50 -translate-x-1/2 sm:bottom-auto sm:left-auto sm:right-3 sm:top-3 sm:translate-x-0",
+        "pointer-events-none fixed bottom-3 left-1/2 z-30 -translate-x-1/2",
         className,
       )}
     >
