@@ -29,7 +29,6 @@ export function RouletteTable({
   const [chip, setChip] = useState(100);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [spinToken, setSpinToken] = useState(0);
-  const settleAttempted = useRef<string | null>(null);
   const revealedFor = useRef<string | null>(null);
 
   const isSettled = round.phase === "settled";
@@ -79,16 +78,32 @@ export function RouletteTable({
   }, [round.phase, round.phase_ends_at]);
 
   // Once the window closes, any client can settle — server rejects duplicates.
+  // Retries every few seconds until the round actually moves out of 'betting'
+  // (detected via the realtime-driven `round` prop, which stops this effect)
+  // rather than a single fire-and-forget attempt, so one dropped/failed request
+  // can't leave the round stuck forever with no visible error.
   useEffect(() => {
     if (round.phase !== "betting" || !round.phase_ends_at) return;
-    if (settleAttempted.current === round.id) return;
     const end = new Date(round.phase_ends_at).getTime();
-    const delay = Math.max(0, end - Date.now()) + 300;
+    const initialDelay = Math.max(0, end - Date.now()) + 300;
+
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const attempt = async () => {
+      const { error } = await callRpc(supabase, "fn_settle_roulette_round", {
+        p_round_id: round.id,
+      });
+      if (error) console.error("fn_settle_roulette_round failed:", error.message);
+    };
+
     const timer = setTimeout(() => {
-      settleAttempted.current = round.id;
-      void callRpc(supabase, "fn_settle_roulette_round", { p_round_id: round.id });
-    }, delay);
-    return () => clearTimeout(timer);
+      void attempt();
+      interval = setInterval(() => void attempt(), 3000);
+    }, initialDelay);
+
+    return () => {
+      clearTimeout(timer);
+      if (interval) clearInterval(interval);
+    };
   }, [round.id, round.phase, round.phase_ends_at, supabase]);
 
   // Trigger the wheel reveal animation exactly once per settled round.

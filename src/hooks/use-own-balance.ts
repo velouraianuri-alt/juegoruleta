@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-/** Live virtual_balance for the current user, kept in sync via Realtime. */
+/**
+ * Live virtual_balance for the current user, kept in sync via Realtime.
+ * Several components (header, active game table) can use this for the same
+ * user at once — the browser Supabase client is a singleton, so each call
+ * needs its own uniquely-named channel or the second `.subscribe()` errors
+ * with "cannot add postgres_changes callbacks ... after subscribe()".
+ */
 export function useOwnBalance(userId: string, initial?: number) {
   const [balance, setBalance] = useState<number | null>(initial ?? null);
+  const instanceId = useId();
 
   useEffect(() => {
     const supabase = createClient();
@@ -21,7 +28,7 @@ export function useOwnBalance(userId: string, initial?: number) {
       });
 
     const channel = supabase
-      .channel(`balance:${userId}`)
+      .channel(`balance:${userId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
@@ -35,7 +42,7 @@ export function useOwnBalance(userId: string, initial?: number) {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, instanceId]);
 
   return balance;
 }

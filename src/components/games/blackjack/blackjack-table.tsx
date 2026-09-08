@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { callRpc } from "@/lib/supabase/rpc";
@@ -31,8 +31,6 @@ export function BlackjackTable({
   const [hands, setHands] = useState<BlackjackHand[]>([]);
   const [betAmount, setBetAmount] = useState(100);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const dealAttempted = useRef<string | null>(null);
-  const resolveAttempted = useRef<string | null>(null);
 
   const isSettled = round.phase === "settled";
 
@@ -77,28 +75,53 @@ export function BlackjackTable({
     return () => clearInterval(interval);
   }, [round.phase, round.phase_ends_at]);
 
-  // Auto-deal once betting closes.
+  // Auto-deal once betting closes. Retries every few seconds (instead of one
+  // fire-and-forget attempt) until the round actually leaves 'betting', so a
+  // single dropped/failed request can't strand it — see the same pattern (and
+  // the incident that motivated it) in roulette-table.tsx.
   useEffect(() => {
     if (round.phase !== "betting" || !round.phase_ends_at) return;
-    if (dealAttempted.current === round.id) return;
     const end = new Date(round.phase_ends_at).getTime();
-    const delay = Math.max(0, end - Date.now()) + 400;
+    const initialDelay = Math.max(0, end - Date.now()) + 400;
+
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const attempt = async () => {
+      const { error } = await callRpc(supabase, "fn_deal_blackjack", { p_round_id: round.id });
+      if (error) console.error("fn_deal_blackjack failed:", error.message);
+    };
+
     const timer = setTimeout(() => {
-      dealAttempted.current = round.id;
-      void callRpc(supabase, "fn_deal_blackjack", { p_round_id: round.id });
-    }, delay);
-    return () => clearTimeout(timer);
+      void attempt();
+      interval = setInterval(() => void attempt(), 3000);
+    }, initialDelay);
+
+    return () => {
+      clearTimeout(timer);
+      if (interval) clearInterval(interval);
+    };
   }, [round.id, round.phase, round.phase_ends_at, supabase]);
 
-  // Auto-resolve once it's the dealer's turn.
+  // Auto-resolve once it's the dealer's turn — same retry pattern.
   useEffect(() => {
     if (round.phase !== "dealer_turn") return;
-    if (resolveAttempted.current === round.id) return;
-    resolveAttempted.current = round.id;
+
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const attempt = async () => {
+      const { error } = await callRpc(supabase, "fn_resolve_blackjack_round", {
+        p_round_id: round.id,
+      });
+      if (error) console.error("fn_resolve_blackjack_round failed:", error.message);
+    };
+
     const timer = setTimeout(() => {
-      void callRpc(supabase, "fn_resolve_blackjack_round", { p_round_id: round.id });
+      void attempt();
+      interval = setInterval(() => void attempt(), 3000);
     }, 900);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      if (interval) clearInterval(interval);
+    };
   }, [round.id, round.phase, supabase]);
 
   useEffect(() => {
