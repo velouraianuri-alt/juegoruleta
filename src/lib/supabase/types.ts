@@ -138,20 +138,72 @@ export interface WalletTransaction {
 
 export interface Database {
   public: {
+    Views: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
     Tables: {
-      profiles: { Row: Profile; Insert: never; Update: never };
-      friend_requests: { Row: FriendRequest; Insert: never; Update: never };
-      rooms: { Row: Room; Insert: never; Update: never };
-      room_players: { Row: RoomPlayer; Insert: never; Update: never };
+      profiles: {
+        Row: Profile;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      friend_requests: {
+        Row: FriendRequest;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      rooms: {
+        Row: Room;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      room_players: {
+        Row: RoomPlayer;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "room_players_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       room_messages: {
         Row: RoomMessage;
         Insert: Pick<RoomMessage, "room_id" | "user_id" | "message">;
-        Update: never;
+        Update: Record<string, never>;
+        Relationships: [];
       };
-      game_rounds: { Row: GameRound; Insert: never; Update: never };
-      roulette_bets: { Row: RouletteBet; Insert: never; Update: never };
-      blackjack_hands: { Row: BlackjackHand; Insert: never; Update: never };
-      wallet_transactions: { Row: WalletTransaction; Insert: never; Update: never };
+      game_rounds: {
+        Row: GameRound;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      roulette_bets: {
+        Row: RouletteBet;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      blackjack_hands: {
+        Row: BlackjackHand;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      wallet_transactions: {
+        Row: WalletTransaction;
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Functions: {
       fn_claim_free_chips: { Args: Record<string, never>; Returns: Profile };

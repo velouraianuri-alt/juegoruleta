@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { callRpc } from "@/lib/supabase/rpc";
 import { RegisterSchema } from "@/lib/validation/auth";
 
 export interface RegisterState {
@@ -32,7 +33,8 @@ export async function registerAction(
   const { username, email, password, avatar } = validated.data;
   const supabase = await createClient();
 
-  const { data: available, error: availError } = await supabase.rpc(
+  const { data: available, error: availError } = await callRpc(
+    supabase,
     "fn_username_available",
     { p_username: username },
   );

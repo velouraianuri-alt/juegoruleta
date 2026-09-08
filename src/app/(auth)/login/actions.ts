@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { callRpc } from "@/lib/supabase/rpc";
 import { LoginSchema } from "@/lib/validation/auth";
 
 export interface LoginState {
@@ -26,7 +27,7 @@ export async function loginAction(
 
   let email = identifier;
   if (!identifier.includes("@")) {
-    const { data: resolvedEmail } = await supabase.rpc("fn_get_email_for_username", {
+    const { data: resolvedEmail } = await callRpc(supabase, "fn_get_email_for_username", {
       p_username: identifier,
     });
     if (!resolvedEmail) {
