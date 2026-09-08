@@ -26,7 +26,7 @@ export type RouletteBetType =
   | "dozen"
   | "column";
 
-export interface Profile {
+export type Profile = {
   id: string;
   username: string;
   avatar_url: string | null;
@@ -39,7 +39,7 @@ export interface Profile {
   created_at: string;
 }
 
-export interface FriendRequest {
+export type FriendRequest = {
   id: string;
   sender_id: string;
   receiver_id: string;
@@ -48,7 +48,7 @@ export interface FriendRequest {
   responded_at: string | null;
 }
 
-export interface Room {
+export type Room = {
   id: string;
   code: string;
   name: string;
@@ -59,7 +59,7 @@ export interface Room {
   created_at: string;
 }
 
-export interface RoomPlayer {
+export type RoomPlayer = {
   room_id: string;
   user_id: string;
   status: RoomPlayerStatus;
@@ -68,7 +68,7 @@ export interface RoomPlayer {
   left_at: string | null;
 }
 
-export interface RoomMessage {
+export type RoomMessage = {
   id: string;
   room_id: string;
   user_id: string;
@@ -79,7 +79,7 @@ export interface RoomMessage {
 // `shoe` and `dealer_hole_card` are intentionally absent — SELECT is revoked on
 // those columns for `authenticated` (see the RLS migration), so PostgREST never
 // returns them to the client.
-export interface GameRound {
+export type GameRound = {
   id: string;
   room_id: string;
   game_type: GameType;
@@ -92,17 +92,17 @@ export interface GameRound {
   settled_at: string | null;
 }
 
-export interface RouletteResult {
+export type RouletteResult = {
   number: number;
   color: "red" | "black" | "green";
 }
 
-export interface BlackjackResult {
+export type BlackjackResult = {
   dealer_value: number;
   dealer_blackjack: boolean;
 }
 
-export interface RouletteBet {
+export type RouletteBet = {
   id: string;
   round_id: string;
   user_id: string;
@@ -113,7 +113,7 @@ export interface RouletteBet {
   created_at: string;
 }
 
-export interface BlackjackHand {
+export type BlackjackHand = {
   id: string;
   round_id: string;
   user_id: string;
@@ -126,7 +126,7 @@ export interface BlackjackHand {
   created_at: string;
 }
 
-export interface WalletTransaction {
+export type WalletTransaction = {
   id: string;
   user_id: string;
   amount: number;
@@ -136,7 +136,7 @@ export interface WalletTransaction {
   created_at: string;
 }
 
-export interface Database {
+export type Database = {
   public: {
     Views: Record<string, never>;
     Enums: Record<string, never>;
