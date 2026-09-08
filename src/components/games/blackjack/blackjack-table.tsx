@@ -141,7 +141,11 @@ export function BlackjackTable({
   const activeHand = hands.find((h) => h.id === round.current_turn_hand_id);
   const isMyTurn = round.phase === "player_turn" && activeHand?.user_id === currentUserId;
 
-  const otherPlayers = players.filter((p) => p.user_id !== currentUserId);
+  // Every joined player gets a seat at the table, even before they've bet —
+  // a real table shows who's sitting down, not just who already has cards.
+  const seatedPlayers = [...players]
+    .filter((p) => p.status === "joined")
+    .sort((a, b) => a.joined_at.localeCompare(b.joined_at));
 
   const onPlaceBet = async () => {
     if (balance !== null && balance < betAmount) {
@@ -211,45 +215,50 @@ export function BlackjackTable({
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-1.5">
-        <p className="text-xs text-muted-foreground">
-          Dealer{" "}
-          {round.dealer_hand.length > 0 && round.phase !== "betting" && (
-            <span className="font-mono text-gold-300">
-              {round.phase === "player_turn" ? round.dealer_hand.length : dealerValue}
+      <div className="felt-texture w-full rounded-3xl border border-gold-400/15 px-4 py-6 shadow-[inset_0_2px_20px_rgba(0,0,0,0.4)] sm:px-8">
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-gold-300">
+              Dealer
             </span>
-          )}
-        </p>
-        <div className="flex gap-1.5">
-          {round.dealer_hand.map((c, i) => (
-            <PlayingCard key={i} code={c} index={i} />
-          ))}
-          {round.phase === "player_turn" && <PlayingCard code={null} faceDown index={1} />}
+            {round.dealer_hand.length > 0 && round.phase !== "betting" && (
+              <span className="font-mono text-xs text-gold-100">
+                {round.phase === "player_turn" ? round.dealer_hand.length : dealerValue}
+              </span>
+            )}
+          </div>
+          <div className="flex min-h-[5.5rem] items-center gap-1.5">
+            {round.dealer_hand.length === 0 && round.phase === "betting" ? (
+              <p className="text-xs text-muted-foreground/60">La mesa reparte al cerrar apuestas</p>
+            ) : (
+              <>
+                {round.dealer_hand.map((c, i) => (
+                  <PlayingCard key={i} code={c} index={i} />
+                ))}
+                {round.phase === "player_turn" && <PlayingCard code={null} faceDown index={1} />}
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="flex w-full flex-wrap items-start justify-center gap-4">
-        {otherPlayers.map((p) => {
-          const theirHands = hands.filter((h) => h.user_id === p.user_id && h.parent_hand_id === null);
-          if (!theirHands.length) return null;
-          return (
-            <PlayerHands
-              key={p.user_id}
-              username={profiles.get(p.user_id)?.username ?? "..."}
-              hands={hands.filter((h) => h.user_id === p.user_id)}
-              currentTurnId={round.current_turn_hand_id}
-            />
-          );
-        })}
-
-        {hasBet && (
-          <PlayerHands
-            username="Tú"
-            hands={hands.filter((h) => h.user_id === currentUserId)}
-            currentTurnId={round.current_turn_hand_id}
-            highlight
-          />
-        )}
+        <div className="mt-6 flex w-full flex-wrap items-start justify-center gap-3 border-t border-gold-400/10 pt-6">
+          {seatedPlayers.map((p) => {
+            const isMe = p.user_id === currentUserId;
+            const seatHands = hands.filter((h) => h.user_id === p.user_id);
+            const profile = profiles.get(p.user_id);
+            return (
+              <Seat
+                key={p.user_id}
+                username={isMe ? "Tú" : (profile?.username ?? "...")}
+                avatar={profile?.avatar_url ?? "🎩"}
+                hands={seatHands}
+                currentTurnId={round.current_turn_hand_id}
+                highlight={isMe}
+                waiting={round.phase === "betting" && seatHands.length === 0}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {round.phase === "betting" && !hasBet && (
@@ -308,43 +317,65 @@ export function BlackjackTable({
   );
 }
 
-function PlayerHands({
+function Seat({
   username,
+  avatar,
   hands,
   currentTurnId,
   highlight,
+  waiting,
 }: {
   username: string;
+  avatar: string;
   hands: BlackjackHand[];
   currentTurnId: string | null;
   highlight?: boolean;
+  waiting?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <p className={cn("text-xs", highlight ? "text-gold-200" : "text-muted-foreground")}>{username}</p>
-      <div className="flex gap-3">
-        {hands.map((hand) => (
-          <div
-            key={hand.id}
-            className={cn(
-              "flex flex-col items-center gap-1 rounded-lg p-1.5",
-              hand.id === currentTurnId && "bg-gold-400/10 ring-1 ring-gold-400/50",
-            )}
-          >
-            <div className="flex gap-1">
-              {hand.cards.map((c, i) => (
-                <PlayingCard key={i} code={c} index={i} />
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              {handValue(hand.cards)}
-              {hand.status === "bust" && " · Bust"}
-              {hand.status === "blackjack" && " · Blackjack!"}
-              {hand.payout != null && ` · ${hand.payout >= hand.bet_amount ? "+" : ""}${hand.payout - hand.bet_amount}`}
-            </p>
-          </div>
-        ))}
+    <div
+      className={cn(
+        "flex min-w-[6rem] flex-col items-center gap-2 rounded-2xl border border-transparent px-3 py-2.5",
+        highlight && "border-gold-400/25 bg-gold-400/[0.04]",
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="flex size-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm">
+          {avatar}
+        </span>
+        <p className={cn("text-xs", highlight ? "text-gold-200" : "text-muted-foreground")}>{username}</p>
       </div>
+
+      {waiting || hands.length === 0 ? (
+        <div className="flex h-16 w-11 items-center justify-center rounded-md border border-dashed border-white/10 text-[9px] text-muted-foreground/50 sm:h-20 sm:w-14">
+          {waiting ? "Sin apuesta" : "—"}
+        </div>
+      ) : (
+        <div className="flex flex-wrap justify-center gap-3">
+          {hands.map((hand) => (
+            <div
+              key={hand.id}
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-lg p-1.5",
+                hand.id === currentTurnId && "bg-gold-400/10 ring-1 ring-gold-400/50",
+              )}
+            >
+              <div className="flex gap-1">
+                {hand.cards.map((c, i) => (
+                  <PlayingCard key={i} code={c} index={i} />
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {handValue(hand.cards)}
+                {hand.status === "bust" && " · Bust"}
+                {hand.status === "blackjack" && " · Blackjack!"}
+                {hand.payout != null &&
+                  ` · ${hand.payout >= hand.bet_amount ? "+" : ""}${hand.payout - hand.bet_amount}`}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
