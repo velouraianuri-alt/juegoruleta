@@ -91,3 +91,26 @@ $$;
 
 revoke all on function public.fn_username_available(text) from public;
 grant execute on function public.fn_username_available(text) to anon, authenticated;
+
+-- fn_get_email_for_username: lets the login form accept a username (not just an
+-- email) by resolving it to the auth email server-side, then the client calls
+-- signInWithPassword with that email as normal. Granted to `anon` since this runs
+-- before the user is authenticated. Only ever returns an email for an *existing*
+-- username — same information disclosure inherent to any "log in with username"
+-- feature, acceptable for a private, invite-only app like this one.
+create or replace function public.fn_get_email_for_username(p_username text)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select u.email
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where lower(p.username) = lower(trim(p_username))
+  limit 1;
+$$;
+
+revoke all on function public.fn_get_email_for_username(text) from public;
+grant execute on function public.fn_get_email_for_username(text) to anon, authenticated;
