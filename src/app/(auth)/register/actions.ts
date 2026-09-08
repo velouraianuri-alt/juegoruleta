@@ -39,6 +39,18 @@ export async function registerAction(
     { p_username: username },
   );
   if (availError) {
+    console.error(
+      "fn_username_available failed:",
+      JSON.stringify(availError),
+      "urlLen:",
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.length,
+      "keyLen:",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.length,
+      "urlStart:",
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 12),
+      "keyStart:",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 12),
+    );
     return { message: "No se pudo comprobar el nombre de usuario. Inténtalo de nuevo." };
   }
   if (!available) {
