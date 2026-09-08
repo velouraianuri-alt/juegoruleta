@@ -68,9 +68,12 @@ create table public.room_messages (
 create index room_messages_room_idx on public.room_messages (room_id, created_at);
 
 -- game_rounds — one active (non settled/cancelled) round per room at a time.
--- `shoe` and `dealer_hole_card` are deliberately never exposed to clients (see column
--- grants in the RLS migration) so a blackjack shoe/hole card can never be read from the
--- browser network tab.
+-- Deliberately holds nothing secret: the blackjack shoe and dealer hole card live in
+-- blackjack_secrets instead (see below), a table with no RLS policies and never added
+-- to the realtime publication, so they can never reach the client — via a REST select
+-- *or* a Postgres Changes payload (Realtime broadcasts the full row from the WAL,
+-- which column-level SQL privileges cannot filter, so physically separating the secret
+-- columns into their own unexposed table is the only reliable way to hide them).
 create table public.game_rounds (
   id uuid primary key default gen_random_uuid(),
   room_id uuid not null references public.rooms (id) on delete cascade,
@@ -80,14 +83,22 @@ create table public.game_rounds (
   current_turn_hand_id uuid,
   result jsonb,
   dealer_hand jsonb not null default '[]'::jsonb,
-  dealer_hole_card text,
-  shoe text[],
   created_at timestamptz not null default now(),
   settled_at timestamptz
 );
 create index game_rounds_room_idx on public.game_rounds (room_id, created_at desc);
 create unique index game_rounds_one_active_per_room_idx on public.game_rounds (room_id)
   where phase not in ('settled', 'cancelled');
+
+-- blackjack_secrets — the live shoe and the dealer's hidden hole card for a blackjack
+-- round. No RLS policies (so authenticated/anon get zero rows) and intentionally never
+-- added to supabase_realtime. Only SECURITY DEFINER functions (running as the table
+-- owner, which bypasses RLS) ever read or write this table.
+create table public.blackjack_secrets (
+  round_id uuid primary key references public.game_rounds (id) on delete cascade,
+  shoe text[] not null,
+  dealer_hole_card text
+);
 
 -- roulette_bets
 create table public.roulette_bets (

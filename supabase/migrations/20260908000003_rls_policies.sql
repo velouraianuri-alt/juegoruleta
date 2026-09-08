@@ -12,6 +12,11 @@ alter table public.game_rounds enable row level security;
 alter table public.roulette_bets enable row level security;
 alter table public.blackjack_hands enable row level security;
 alter table public.wallet_transactions enable row level security;
+alter table public.blackjack_secrets enable row level security;
+-- No policies on blackjack_secrets at all: RLS enabled + zero policies denies every
+-- row to `anon`/`authenticated`. Only SECURITY DEFINER functions (owner-run, which
+-- bypasses RLS) can ever read the shoe or the dealer's hole card.
+revoke all on public.blackjack_secrets from anon, authenticated;
 
 -- profiles: readable by anyone authenticated (needed for search/leaderboard/friends).
 create policy profiles_select_all on public.profiles
@@ -98,17 +103,8 @@ create policy wallet_transactions_select_own on public.wallet_transactions
   for select to authenticated
   using (user_id = auth.uid());
 
--- Column-level privileges: the blackjack shoe and the dealer's hidden hole card must
--- never be readable from the client (that would let a player predict/see the
--- outcome ahead of time). RPCs are SECURITY DEFINER and run as the table owner, so
--- they bypass these column grants and can read/write everything.
-revoke select on public.game_rounds from authenticated;
-grant select (
-  id, room_id, game_type, phase, phase_ends_at, current_turn_hand_id,
-  result, dealer_hand, created_at, settled_at
-) on public.game_rounds to authenticated;
-
 -- Realtime: broadcast row changes for everything a room needs to sync live.
+-- blackjack_secrets is deliberately NOT in this list — see its table comment.
 alter publication supabase_realtime add table
   public.rooms,
   public.room_players,

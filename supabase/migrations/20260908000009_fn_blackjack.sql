@@ -60,8 +60,8 @@ end;
 $$;
 
 -- fn_start_blackjack_round: shuffles a fresh 6-deck shoe server-side and opens a 15s
--- betting window. The shoe is stored in a column with SELECT revoked from
--- `authenticated` (see the RLS migration) so it can never be read from the client.
+-- betting window. The shoe lives in blackjack_secrets (no RLS policies, never
+-- realtime-published) so it can never be read from the client.
 create or replace function public.fn_start_blackjack_round(p_room_id uuid)
 returns public.game_rounds
 language plpgsql
@@ -100,9 +100,11 @@ begin
   end loop;
   v_deck := array(select unnest(v_deck) order by random());
 
-  insert into public.game_rounds (room_id, game_type, phase, phase_ends_at, shoe, dealer_hand)
-  values (p_room_id, 'blackjack', 'betting', now() + interval '15 seconds', v_deck, '[]'::jsonb)
+  insert into public.game_rounds (room_id, game_type, phase, phase_ends_at, dealer_hand)
+  values (p_room_id, 'blackjack', 'betting', now() + interval '15 seconds', '[]'::jsonb)
   returning * into v_round;
+
+  insert into public.blackjack_secrets (round_id, shoe) values (v_round.id, v_deck);
 
   return v_round;
 exception
@@ -184,6 +186,7 @@ set search_path = ''
 as $$
 declare
   v_round public.game_rounds;
+  v_secrets public.blackjack_secrets;
   v_shoe text[];
   v_card text;
   v_hand record;
@@ -203,7 +206,8 @@ begin
     raise exception 'No bets placed';
   end if;
 
-  v_shoe := v_round.shoe;
+  select * into v_secrets from public.blackjack_secrets where round_id = p_round_id for update;
+  v_shoe := v_secrets.shoe;
 
   for v_hand in
     select id from public.blackjack_hands
@@ -231,7 +235,7 @@ begin
 
   v_card := v_shoe[1];
   v_shoe := v_shoe[2:];
-  update public.game_rounds set dealer_hole_card = v_card, shoe = v_shoe where id = p_round_id;
+  update public.blackjack_secrets set dealer_hole_card = v_card, shoe = v_shoe where round_id = p_round_id;
 
   update public.blackjack_hands
   set status = 'blackjack'
@@ -289,8 +293,8 @@ begin
     raise exception 'Not this hand''s turn';
   end if;
 
-  v_card := v_round.shoe[1];
-  update public.game_rounds set shoe = v_round.shoe[2:] where id = v_round.id;
+  select shoe[1] into v_card from public.blackjack_secrets where round_id = v_round.id;
+  update public.blackjack_secrets set shoe = shoe[2:] where round_id = v_round.id;
 
   update public.blackjack_hands set cards = cards || to_jsonb(v_card) where id = p_hand_id
   returning * into v_hand;
@@ -398,8 +402,8 @@ begin
   insert into public.wallet_transactions (user_id, amount, balance_after, reason, round_id)
   values (v_uid, -v_hand.bet_amount, v_new_balance, 'bet', v_round.id);
 
-  v_card := v_round.shoe[1];
-  update public.game_rounds set shoe = v_round.shoe[2:] where id = v_round.id;
+  select shoe[1] into v_card from public.blackjack_secrets where round_id = v_round.id;
+  update public.blackjack_secrets set shoe = shoe[2:] where round_id = v_round.id;
 
   update public.blackjack_hands
   set cards = cards || to_jsonb(v_card), bet_amount = bet_amount * 2, is_double = true
@@ -495,13 +499,13 @@ begin
   values (v_round.id, v_uid, p_hand_id, jsonb_build_array(v_card2), v_hand.bet_amount, 'playing')
   returning * into v_new_hand;
 
-  v_card := v_round.shoe[1];
-  update public.game_rounds set shoe = shoe[2:] where id = v_round.id;
+  select shoe[1] into v_card from public.blackjack_secrets where round_id = v_round.id;
+  update public.blackjack_secrets set shoe = shoe[2:] where round_id = v_round.id;
   update public.blackjack_hands set cards = cards || to_jsonb(v_card) where id = p_hand_id
   returning * into v_hand;
 
-  select shoe[1] into v_card from public.game_rounds where id = v_round.id;
-  update public.game_rounds set shoe = shoe[2:] where id = v_round.id;
+  select shoe[1] into v_card from public.blackjack_secrets where round_id = v_round.id;
+  update public.blackjack_secrets set shoe = shoe[2:] where round_id = v_round.id;
   update public.blackjack_hands set cards = cards || to_jsonb(v_card) where id = v_new_hand.id
   returning * into v_new_hand;
 
@@ -530,6 +534,7 @@ set search_path = ''
 as $$
 declare
   v_round public.game_rounds;
+  v_secrets public.blackjack_secrets;
   v_shoe text[];
   v_dealer_cards text[];
   v_dealer_value int;
@@ -551,8 +556,9 @@ begin
     raise exception 'Round is not ready to resolve';
   end if;
 
-  v_shoe := v_round.shoe;
-  v_dealer_cards := array(select jsonb_array_elements_text(v_round.dealer_hand)) || v_round.dealer_hole_card;
+  select * into v_secrets from public.blackjack_secrets where round_id = p_round_id for update;
+  v_shoe := v_secrets.shoe;
+  v_dealer_cards := array(select jsonb_array_elements_text(v_round.dealer_hand)) || v_secrets.dealer_hole_card;
   update public.game_rounds set dealer_hand = to_jsonb(v_dealer_cards) where id = p_round_id;
 
   v_dealer_value := public.fn_bj_hand_value(v_dealer_cards);
@@ -568,7 +574,7 @@ begin
     end loop;
   end if;
 
-  update public.game_rounds set shoe = v_shoe where id = p_round_id;
+  update public.blackjack_secrets set shoe = v_shoe where round_id = p_round_id;
 
   for v_hand in select * from public.blackjack_hands where round_id = p_round_id loop
     v_hand_value := public.fn_bj_hand_value(array(select jsonb_array_elements_text(v_hand.cards)));
