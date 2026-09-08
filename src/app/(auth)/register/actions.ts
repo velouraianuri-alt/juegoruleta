@@ -39,6 +39,7 @@ export async function registerAction(
     { p_username: username },
   );
   if (availError) {
+    console.error("fn_username_available failed:", JSON.stringify(availError));
     return { message: "No se pudo comprobar el nombre de usuario. Inténtalo de nuevo." };
   }
   if (!available) {
