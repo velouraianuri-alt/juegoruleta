@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { signOutAction } from "@/app/(app)/actions";
 import { LogoMark } from "@/components/landing/logo-mark";
+import { SoundToggle } from "@/components/app/sound-toggle";
+import { useOwnBalance } from "@/hooks/use-own-balance";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +36,7 @@ const NAV_LINKS = [
 
 export function AppHeader({ profile }: { profile: Profile }) {
   const pathname = usePathname();
+  const balance = useOwnBalance(profile.id, profile.virtual_balance);
 
   return (
     <header className="glass-panel sticky top-0 z-40 flex items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 sm:px-6">
@@ -73,9 +76,11 @@ export function AppHeader({ profile }: { profile: Profile }) {
         <div className="flex items-center gap-1.5 rounded-full border border-gold-400/25 bg-gold-400/10 px-3 py-1.5 text-sm font-semibold text-gold-200">
           <Coins className="size-4 text-gold-400" />
           <span className="font-mono tabular-nums">
-            {profile.virtual_balance.toLocaleString("es-ES")}
+            {(balance ?? profile.virtual_balance).toLocaleString("es-ES")}
           </span>
         </div>
+
+        <SoundToggle />
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg hover:bg-white/10">
