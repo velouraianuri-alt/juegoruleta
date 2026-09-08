@@ -7,6 +7,8 @@ import { callRpc } from "@/lib/supabase/rpc";
 import { useOwnBalance } from "@/hooks/use-own-balance";
 import { sound } from "@/lib/sound";
 import { RouletteWheel } from "./roulette-wheel";
+import { RouletteWheel3D } from "./wheel-3d/scene";
+import { useWebglSupport } from "./wheel-3d/use-webgl-support";
 import { BettingGrid, type BetTotals } from "./betting-grid";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,7 @@ export function RouletteTable({
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [spinToken, setSpinToken] = useState(0);
   const revealedFor = useRef<string | null>(null);
+  const webglSupported = useWebglSupport();
 
   const isSettled = round.phase === "settled";
   const result = isSettled ? (round.result as RouletteResult | null) : null;
@@ -181,7 +184,11 @@ export function RouletteTable({
         </div>
       </div>
 
-      <RouletteWheel spinToken={spinToken} winningNumber={result?.number ?? null} />
+      {webglSupported === false ? (
+        <RouletteWheel spinToken={spinToken} winningNumber={result?.number ?? null} />
+      ) : (
+        <RouletteWheel3D spinToken={spinToken} winningNumber={result?.number ?? null} />
+      )}
 
       {isSettled && result && (
         <div className="glass-panel flex w-full flex-col items-center gap-2 rounded-xl p-4 text-center">
