@@ -175,8 +175,8 @@ export function RoomClient({
   };
 
   return (
-    <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-6 sm:px-6">
-      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-3 py-4 sm:gap-4 sm:px-6 sm:py-6">
+      <div className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-3 sm:p-4">
         <div>
           <h1 className="font-heading text-xl font-bold text-gold-100">{room.name}</h1>
           <button
@@ -214,8 +214,8 @@ export function RoomClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr_260px]">
-        <div className="glass-panel flex flex-col gap-2 rounded-2xl p-4 lg:order-1">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-[220px_1fr_260px]">
+        <div className="glass-panel flex flex-col gap-2 rounded-2xl p-3 sm:p-4 lg:order-1">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Jugadores ({activePlayers.length}/{room.max_players})
           </p>
@@ -264,7 +264,7 @@ export function RoomClient({
           )}
         </div>
 
-        <div className="glass-panel flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-2xl p-6 lg:order-2">
+        <div className="glass-panel flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-2xl p-3 sm:p-6 lg:order-2">
           {room.status !== "playing" && (
             <div className="flex flex-col items-center gap-2 text-center">
               <p className="text-sm text-muted-foreground">

@@ -241,9 +241,11 @@ export function RouletteWheel2D({
   durationMs?: number;
   onSettled?: () => void;
   className?: string;
-  /** CSS px cap on the wheel's displayed size — animates smoothly when it
-   * changes (e.g. growing once betting closes and it becomes the sole focus). */
-  maxWidth?: number;
+  /** CSS max-width for the wheel's displayed size — a px number, or any CSS
+   * length (e.g. "min(300px, 62vw)" so it scales down on narrow phones
+   * instead of a fixed px value that can dwarf the viewport). Animates
+   * smoothly when it changes (e.g. growing once betting closes). */
+  maxWidth?: number | string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const planRef = useRef<SpinPlan2D | null>(null);

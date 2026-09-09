@@ -345,13 +345,13 @@ export function RouletteTable({
         )}
         transition={{ layout: FOCUS_LAYOUT_TRANSITION }}
       >
-        <motion.div layout transition={{ layout: FOCUS_LAYOUT_TRANSITION }} className="flex min-w-0 flex-col items-center gap-2">
+        <motion.div layout transition={{ layout: FOCUS_LAYOUT_TRANSITION }} className="flex min-w-0 w-full flex-col items-center gap-2 justify-self-stretch">
           <RouletteWheel2D
             spinToken={spinToken}
             winningNumber={result?.number ?? null}
             durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
             onSettled={() => setRevealReady(true)}
-            maxWidth={round.phase === "betting" ? 300 : 420}
+            maxWidth={round.phase === "betting" ? "min(300px, 62vw)" : "min(420px, 80vw)"}
           />
           <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
 
