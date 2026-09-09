@@ -49,22 +49,31 @@ export function RouletteTable({
   const webglSupported = useWebglSupport();
   const [cameraPreset, setCameraPreset] = useState<CameraPresetId>("classic");
   const [cameraResetToken, setCameraResetToken] = useState(0);
-  const [quickSpin, setQuickSpin] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.localStorage.getItem("prive-quick-spin") === "true";
-    } catch {
-      return false;
-    }
-  });
+  // Starts false on both server and client's first render (matching, so hydration
+  // doesn't warn) — the real stored preference is applied a moment later, once
+  // mounted, since localStorage doesn't exist during SSR.
+  const [quickSpin, setQuickSpin] = useState(false);
 
   useEffect(() => {
+    // Deferred a tick, matching use-webgl-support.ts, so this reads as subscribing
+    // to an external read's result rather than a synchronous setState-in-effect.
+    queueMicrotask(() => {
+      try {
+        setQuickSpin(window.localStorage.getItem("prive-quick-spin") === "true");
+      } catch {
+        // ignore (private browsing etc.)
+      }
+    });
+  }, []);
+
+  const onQuickSpinChange = (value: boolean) => {
+    setQuickSpin(value);
     try {
-      window.localStorage.setItem("prive-quick-spin", String(quickSpin));
+      window.localStorage.setItem("prive-quick-spin", String(value));
     } catch {
       // ignore (private browsing etc.)
     }
-  }, [quickSpin]);
+  };
 
   const isSettled = round.phase === "settled";
   const result = isSettled ? (round.result as RouletteResult | null) : null;
@@ -313,7 +322,7 @@ export function RouletteTable({
               onPresetChange={setCameraPreset}
               onReset={() => setCameraResetToken((t) => t + 1)}
             />
-            <SpinSpeedToggle quick={quickSpin} onChange={setQuickSpin} />
+            <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
           </div>
         </>
       )}
