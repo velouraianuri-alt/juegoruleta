@@ -6,17 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import { callRpc } from "@/lib/supabase/rpc";
 import { useOwnBalance } from "@/hooks/use-own-balance";
 import { sound } from "@/lib/sound";
-import { RouletteWheel } from "./roulette-wheel";
-import { RouletteWheel3D } from "./wheel-3d/scene";
-import { useWebglSupport } from "./wheel-3d/use-webgl-support";
-import { CameraControls } from "./wheel-3d/camera-controls";
-import type { CameraPresetId } from "./wheel-3d/camera-presets";
+import { RouletteWheel2D } from "./wheel-2d/wheel-canvas";
 import { SpinSpeedToggle } from "./wheel-3d/spin-speed-toggle";
-import { SPIN_DURATION_NORMAL_MS, SPIN_DURATION_FAST_MS } from "./wheel-3d/spin-curve";
-// Matches roulette-wheel.tsx's hardcoded `transition: transform 4200ms` — the CSS
-// fallback wheel has no onSettled callback of its own, so this is how long the
-// result reveal waits before showing when that wheel is the one rendering.
-const CSS_WHEEL_REVEAL_MS = 4200;
+import { SPIN_DURATION_NORMAL_MS, SPIN_DURATION_FAST_MS } from "./wheel-2d/spin-physics-2d";
 import { BettingGrid, type BetTotals } from "./betting-grid";
 import { ChipSelector } from "./chip-selector";
 import type { ChipDenomination } from "./chip-denominations";
@@ -46,9 +38,6 @@ export function RouletteTable({
   // spoil itself before the spin actually finishes playing.
   const [revealReady, setRevealReady] = useState(false);
   const revealedFor = useRef<string | null>(null);
-  const webglSupported = useWebglSupport();
-  const [cameraPreset, setCameraPreset] = useState<CameraPresetId>("classic");
-  const [cameraResetToken, setCameraResetToken] = useState(0);
   // Starts false on both server and client's first render (matching, so hydration
   // doesn't warn) — the real stored preference is applied a moment later, once
   // mounted, since localStorage doesn't exist during SSR.
@@ -165,26 +154,17 @@ export function RouletteTable({
     }
   }, [isSettled, result, round.id]);
 
-  // The CSS fallback wheel (no WebGL2) has no onSettled callback of its own —
-  // its spin is a fixed-duration CSS transition, so time the reveal to match it.
-  // The 3D wheel instead flips revealReady via its own onSettled prop below.
+  // Safety net: onSettled fires from a requestAnimationFrame loop, which browsers
+  // pause while the tab is backgrounded — if the player switches away mid-spin,
+  // rAF (and the reveal) would otherwise stay stalled until they come back. Force
+  // the reveal open a few seconds past the spin's own duration regardless, so
+  // "Nueva ronda" can never be permanently unreachable.
   useEffect(() => {
-    if (webglSupported !== false || spinToken === 0) return;
-    const timer = setTimeout(() => setRevealReady(true), CSS_WHEEL_REVEAL_MS);
-    return () => clearTimeout(timer);
-  }, [spinToken, webglSupported]);
-
-  // Safety net for the 3D wheel: its onSettled fires from a requestAnimationFrame
-  // loop, which browsers pause while the tab is backgrounded — if the player
-  // switches away mid-spin, rAF (and the reveal) would otherwise stay stalled
-  // until they come back. Force the reveal open a few seconds past the spin's own
-  // duration regardless, so "Nueva ronda" can never be permanently unreachable.
-  useEffect(() => {
-    if (webglSupported === false || spinToken === 0) return;
+    if (spinToken === 0) return;
     const durationMs = quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS;
     const timer = setTimeout(() => setRevealReady(true), durationMs + 3000);
     return () => clearTimeout(timer);
-  }, [spinToken, webglSupported, quickSpin]);
+  }, [spinToken, quickSpin]);
 
   const myBets = bets.filter((b) => b.user_id === currentUserId);
   const myStake = myBets.reduce((sum, b) => sum + b.amount, 0);
@@ -309,28 +289,13 @@ export function RouletteTable({
           on a normal desktop window, instead of one long vertical column. */}
       <div className="grid w-full items-start gap-4 lg:grid-cols-[300px_1fr]">
         <div className="flex flex-col items-center gap-2">
-          {webglSupported === false ? (
-            <RouletteWheel spinToken={spinToken} winningNumber={result?.number ?? null} />
-          ) : (
-            <>
-              <RouletteWheel3D
-                spinToken={spinToken}
-                winningNumber={result?.number ?? null}
-                cameraPreset={cameraPreset}
-                cameraResetToken={cameraResetToken}
-                durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
-                onSettled={() => setRevealReady(true)}
-              />
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <CameraControls
-                  preset={cameraPreset}
-                  onPresetChange={setCameraPreset}
-                  onReset={() => setCameraResetToken((t) => t + 1)}
-                />
-                <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
-              </div>
-            </>
-          )}
+          <RouletteWheel2D
+            spinToken={spinToken}
+            winningNumber={result?.number ?? null}
+            durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
+            onSettled={() => setRevealReady(true)}
+          />
+          <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
 
           <ResultsHistory roomId={roomId} />
         </div>
