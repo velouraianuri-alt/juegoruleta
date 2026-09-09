@@ -22,8 +22,10 @@ import type { GameRound, RouletteBet, RouletteBetType, RouletteResult } from "@/
 // How long the wheel-grows/board-hides layout transition takes to settle —
 // shared by the spring transition itself and the delay before the spin/ball
 // animation is allowed to start, so the two stay in sync if either is tuned.
-const FOCUS_TRANSITION_MS = 550;
-const FOCUS_LAYOUT_TRANSITION = { type: "spring" as const, stiffness: 180, damping: 24 };
+// Deliberately slow (~1.6s): the grow should read as its own clear beat, not
+// a blip, before the wheel starts turning and the ball launches.
+const FOCUS_TRANSITION_MS = 1600;
+const FOCUS_LAYOUT_TRANSITION = { type: "tween" as const, duration: 1.3, ease: "easeInOut" as const };
 
 export function RouletteTable({
   round,
@@ -343,7 +345,7 @@ export function RouletteTable({
         )}
         transition={{ layout: FOCUS_LAYOUT_TRANSITION }}
       >
-        <motion.div layout className="flex flex-col items-center gap-2">
+        <motion.div layout transition={{ layout: FOCUS_LAYOUT_TRANSITION }} className="flex flex-col items-center gap-2">
           <RouletteWheel2D
             spinToken={spinToken}
             winningNumber={result?.number ?? null}

@@ -355,7 +355,7 @@ export function RouletteWheel2D({
     <motion.div
       layout
       className={className}
-      transition={{ layout: { type: "spring", stiffness: 180, damping: 24 } }}
+      transition={{ layout: { type: "tween", duration: 1.3, ease: "easeInOut" } }}
       style={{
         width: "100%",
         maxWidth,
