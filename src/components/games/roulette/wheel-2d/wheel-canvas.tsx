@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { sound } from "@/lib/sound";
 import { colorForNumber } from "../wheel-data";
 import {
@@ -233,12 +234,16 @@ export function RouletteWheel2D({
   durationMs = SPIN_DURATION_NORMAL_MS,
   onSettled,
   className,
+  maxWidth = 320,
 }: {
   spinToken: number;
   winningNumber: number | null;
   durationMs?: number;
   onSettled?: () => void;
   className?: string;
+  /** CSS px cap on the wheel's displayed size — animates smoothly when it
+   * changes (e.g. growing once betting closes and it becomes the sole focus). */
+  maxWidth?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const planRef = useRef<SpinPlan2D | null>(null);
@@ -347,17 +352,18 @@ export function RouletteWheel2D({
   }, [spinToken, winningNumber, durationMs]);
 
   return (
-    <div
+    <motion.div
       className={className}
+      animate={{ maxWidth }}
+      transition={{ type: "spring", stiffness: 180, damping: 24 }}
       style={{
         width: "100%",
         aspectRatio: "1 / 1",
-        maxWidth: 320,
         borderRadius: "9999px",
         overflow: "hidden",
       }}
     >
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-    </div>
+    </motion.div>
   );
 }

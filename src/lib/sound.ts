@@ -128,6 +128,15 @@ function wheelHum(durationMs: number) {
 
 export const sound = {
   chip: () => tone(720, 0.08, { type: "square", gain: 0.06 }),
+  /** A single chip coming back off the table — pitch dips instead of the flat
+   * click `chip()` makes when one goes down, so undo reads as the reverse action. */
+  chipUndo: () => tone(650, 0.09, { type: "square", gain: 0.06, freqEnd: 380 }),
+  /** Sweeping every chip off the table at once — a few quick descending ticks
+   * layered under a short filtered noise burst, distinct from the single-chip cues. */
+  chipsClear: () => {
+    [900, 760, 620].forEach((freq, i) => tone(freq, 0.07, { type: "square", gain: 0.05, delay: i * 0.035 }));
+    noiseBurst(0.18, { gain: 0.07, delay: 0.02 });
+  },
   cardFlip: () => noiseBurst(0.12, { gain: 0.1 }),
   spinStart: () => {
     tone(180, 0.9, { type: "sawtooth", gain: 0.05, freqEnd: 420 });

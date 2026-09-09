@@ -15,7 +15,8 @@ export function ChipStack({ amount }: { amount: number }) {
   const layers = amount >= 1000 ? 3 : amount >= 100 ? 2 : 1;
 
   return (
-    <div
+    <motion.div
+      exit={{ opacity: 0, scale: 0.4, y: -14, rotate: 25, transition: { duration: 0.22, ease: "easeIn" } }}
       className="pointer-events-none absolute -top-2.5 -right-2 z-10"
       style={{ width: 24, height: 24 + (layers - 1) * 3 }}
     >
@@ -45,6 +46,6 @@ export function ChipStack({ amount }: { amount: number }) {
           </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

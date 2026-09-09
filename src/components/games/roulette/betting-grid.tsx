@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { colorForNumber } from "./wheel-data";
 import { NUMBER_ROWS, buildHitZones } from "./roulette-grid-geometry";
 import { ChipStack } from "./chip-stack";
@@ -47,7 +47,9 @@ export function BettingGrid({
           className="relative flex w-9 shrink-0 items-center justify-center border border-gold-200/40 bg-felt-500 pl-1 text-sm font-bold text-white disabled:pointer-events-none disabled:opacity-50 sm:w-11 lg:w-14 lg:text-base"
         >
           0
-          {totals.straight[0] > 0 && <ChipStack amount={totals.straight[0]} />}
+          <AnimatePresence>
+            {totals.straight[0] > 0 && <ChipStack key="chip" amount={totals.straight[0]} />}
+          </AnimatePresence>
         </motion.button>
 
         <div className="relative grid flex-1 grid-cols-12 gap-px bg-gold-200/25 p-px">
@@ -71,7 +73,9 @@ export function BettingGrid({
                   )}
                 >
                   {n}
-                  {totals.straight[n] > 0 && <ChipStack amount={totals.straight[n]} />}
+                  <AnimatePresence>
+                    {totals.straight[n] > 0 && <ChipStack key="chip" amount={totals.straight[n]} />}
+                  </AnimatePresence>
                 </motion.button>
               </div>
             )),
@@ -99,7 +103,7 @@ export function BettingGrid({
                   )}
                   style={{ left: `${zone.xPct}%`, top: `${zone.yPct}%` }}
                 >
-                  {amount ? <ChipStack amount={amount} /> : null}
+                  <AnimatePresence>{amount ? <ChipStack key="chip" amount={amount} /> : null}</AnimatePresence>
                 </motion.button>
               );
             })}
@@ -119,9 +123,11 @@ export function BettingGrid({
               className="relative flex h-8 flex-1 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[9px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-[10px] lg:h-10 lg:text-xs"
             >
               2:1
-              {totals.outside[cellKey("column", String(c))] ? (
-                <ChipStack amount={totals.outside[cellKey("column", String(c))]!} />
-              ) : null}
+              <AnimatePresence>
+                {totals.outside[cellKey("column", String(c))] ? (
+                  <ChipStack key="chip" amount={totals.outside[cellKey("column", String(c))]!} />
+                ) : null}
+              </AnimatePresence>
             </motion.button>
           ))}
         </div>
@@ -141,9 +147,11 @@ export function BettingGrid({
               className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-xs text-gold-200 disabled:pointer-events-none disabled:opacity-50 lg:h-10 lg:text-sm"
             >
               {d === 1 ? "1ª docena" : d === 2 ? "2ª docena" : "3ª docena"}
-              {totals.outside[cellKey("dozen", String(d))] ? (
-                <ChipStack amount={totals.outside[cellKey("dozen", String(d))]!} />
-              ) : null}
+              <AnimatePresence>
+                {totals.outside[cellKey("dozen", String(d))] ? (
+                  <ChipStack key="chip" amount={totals.outside[cellKey("dozen", String(d))]!} />
+                ) : null}
+              </AnimatePresence>
             </motion.button>
           ))}
         </div>
@@ -162,7 +170,11 @@ export function BettingGrid({
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             1–18
-            {totals.outside[cellKey("low", "")] ? <ChipStack amount={totals.outside[cellKey("low", "")]!} /> : null}
+            <AnimatePresence>
+              {totals.outside[cellKey("low", "")] ? (
+                <ChipStack key="chip" amount={totals.outside[cellKey("low", "")]!} />
+              ) : null}
+            </AnimatePresence>
           </motion.button>
           <motion.button
             type="button"
@@ -174,7 +186,11 @@ export function BettingGrid({
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             PAR
-            {totals.outside[cellKey("even", "")] ? <ChipStack amount={totals.outside[cellKey("even", "")]!} /> : null}
+            <AnimatePresence>
+              {totals.outside[cellKey("even", "")] ? (
+                <ChipStack key="chip" amount={totals.outside[cellKey("even", "")]!} />
+              ) : null}
+            </AnimatePresence>
           </motion.button>
           <motion.button
             type="button"
@@ -187,7 +203,11 @@ export function BettingGrid({
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50 lg:h-10"
           >
             <span className="size-4 rotate-45 border-2 border-crimson-400 sm:size-5 lg:size-6" />
-            {totals.outside[cellKey("red", "")] ? <ChipStack amount={totals.outside[cellKey("red", "")]!} /> : null}
+            <AnimatePresence>
+              {totals.outside[cellKey("red", "")] ? (
+                <ChipStack key="chip" amount={totals.outside[cellKey("red", "")]!} />
+              ) : null}
+            </AnimatePresence>
           </motion.button>
           <motion.button
             type="button"
@@ -200,7 +220,11 @@ export function BettingGrid({
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50 lg:h-10"
           >
             <span className="size-4 rotate-45 border-2 border-white bg-noir-950 sm:size-5 lg:size-6" />
-            {totals.outside[cellKey("black", "")] ? <ChipStack amount={totals.outside[cellKey("black", "")]!} /> : null}
+            <AnimatePresence>
+              {totals.outside[cellKey("black", "")] ? (
+                <ChipStack key="chip" amount={totals.outside[cellKey("black", "")]!} />
+              ) : null}
+            </AnimatePresence>
           </motion.button>
           <motion.button
             type="button"
@@ -212,7 +236,11 @@ export function BettingGrid({
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             IMPAR
-            {totals.outside[cellKey("odd", "")] ? <ChipStack amount={totals.outside[cellKey("odd", "")]!} /> : null}
+            <AnimatePresence>
+              {totals.outside[cellKey("odd", "")] ? (
+                <ChipStack key="chip" amount={totals.outside[cellKey("odd", "")]!} />
+              ) : null}
+            </AnimatePresence>
           </motion.button>
           <motion.button
             type="button"
@@ -224,7 +252,11 @@ export function BettingGrid({
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             19–36
-            {totals.outside[cellKey("high", "")] ? <ChipStack amount={totals.outside[cellKey("high", "")]!} /> : null}
+            <AnimatePresence>
+              {totals.outside[cellKey("high", "")] ? (
+                <ChipStack key="chip" amount={totals.outside[cellKey("high", "")]!} />
+              ) : null}
+            </AnimatePresence>
           </motion.button>
         </div>
         <div className="w-9 shrink-0 sm:w-11 lg:w-14" />

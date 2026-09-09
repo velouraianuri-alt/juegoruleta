@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { callRpc } from "@/lib/supabase/rpc";
@@ -222,12 +223,14 @@ export function RouletteTable({
     const last = [...myBets].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     )[0];
+    sound.chipUndo();
     const { error } = await callRpc(supabase, "fn_cancel_roulette_bet", { p_bet_id: last.id });
     if (error) toast.error("No se pudo deshacer la apuesta");
   };
 
   const onClearBets = async () => {
     if (myBets.length === 0) return;
+    sound.chipsClear();
     const { error } = await callRpc(supabase, "fn_clear_roulette_bets", { p_round_id: round.id });
     if (error) toast.error("No se pudo limpiar la mesa");
   };
@@ -312,25 +315,46 @@ export function RouletteTable({
         </div>
       </div>
 
-      {/* Wheel on the left, betting controls on the right from lg up — stacked
-          below that. Keeps everything reachable without scrolling the game panel
-          on a normal desktop window, instead of one long vertical column. */}
-      <div className="grid w-full items-start gap-4 lg:grid-cols-[300px_1fr]">
-        <div className="flex flex-col items-center gap-2">
+      {/* Wheel on the left, betting controls on the right from lg up while betting
+          is open. Once betting closes, the wheel grows and the second column
+          narrows down to just the (short) result panel, vertically centered
+          beside it — deliberately *not* stacked into one column, which would sum
+          the two heights instead of taking the max and reintroduce page scroll.
+          `layout` on both this container and the wheel's own wrapper lets Framer
+          animate that reflow automatically instead of it just snapping between
+          states. */}
+      <motion.div
+        layout
+        className={cn(
+          "grid w-full gap-4",
+          round.phase === "betting" ? "items-start lg:grid-cols-[300px_1fr]" : "items-center lg:grid-cols-[1fr_auto] justify-items-center",
+        )}
+        transition={{ layout: { type: "spring", stiffness: 180, damping: 24 } }}
+      >
+        <motion.div layout className="flex flex-col items-center gap-2">
           <RouletteWheel2D
             spinToken={spinToken}
             winningNumber={result?.number ?? null}
             durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
             onSettled={() => setRevealReady(true)}
+            maxWidth={round.phase === "betting" ? 300 : 420}
           />
           <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
 
           <ResultsHistory roomId={roomId} />
-        </div>
+        </motion.div>
 
-        <div className="flex flex-col gap-2">
-          {isSettled && result && revealReady && (
-            <div className="glass-panel flex w-full flex-col items-center gap-2 rounded-xl p-3 text-center">
+        <AnimatePresence mode="wait">
+          {isSettled && result && revealReady ? (
+            <motion.div
+              key="result"
+              layout
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ duration: 0.25 }}
+              className="glass-panel flex w-full max-w-sm flex-col items-center gap-2 rounded-xl p-3 text-center"
+            >
               <p className="text-sm text-muted-foreground">
                 Salió el <span className="font-semibold text-gold-200">{result.number}</span>{" "}
                 ({result.color === "red" ? "rojo" : result.color === "black" ? "negro" : "verde"})
@@ -344,11 +368,17 @@ export function RouletteTable({
               <Button onClick={onNewRound} className="bg-gold-400 text-noir-950 hover:bg-gold-300">
                 Nueva ronda
               </Button>
-            </div>
-          )}
-
-          {round.phase === "betting" && (
-            <>
+            </motion.div>
+          ) : round.phase === "betting" ? (
+            <motion.div
+              key="betting"
+              layout
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col gap-2"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <ChipSelector value={chip} onChange={setChip} />
                 <BetActions
@@ -369,10 +399,10 @@ export function RouletteTable({
                   En juego: <span className="font-mono text-gold-200">{myStake.toLocaleString("es-ES")}</span>
                 </span>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
