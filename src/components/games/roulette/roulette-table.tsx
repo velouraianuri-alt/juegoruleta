@@ -19,6 +19,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GameRound, RouletteBet, RouletteBetType, RouletteResult } from "@/lib/supabase/types";
 
+// How long the wheel-grows/board-hides layout transition takes to settle —
+// shared by the spring transition itself and the delay before the spin/ball
+// animation is allowed to start, so the two stay in sync if either is tuned.
+const FOCUS_TRANSITION_MS = 550;
+const FOCUS_LAYOUT_TRANSITION = { type: "spring" as const, stiffness: 180, damping: 24 };
+
 export function RouletteTable({
   round,
   roomId,
@@ -146,12 +152,18 @@ export function RouletteTable({
     };
   }, [round.id, round.phase, round.phase_ends_at, supabase]);
 
-  // Trigger the wheel reveal animation exactly once per settled round.
+  // Trigger the wheel reveal animation exactly once per settled round — but not
+  // instantly: the wheel-grows/board-hides layout transition below needs a beat
+  // to actually play first, otherwise the resize and the spin start at the same
+  // moment and read as one messy blur instead of a clean sequence (grow + hide
+  // board, *then* the wheel turns and the ball launches). Matches the layout
+  // spring's own settle time (stiffness 180 / damping 24 below).
   useEffect(() => {
     if (isSettled && result && revealedFor.current !== round.id) {
       revealedFor.current = round.id;
       setRevealReady(false);
-      setSpinToken((t) => t + 1);
+      const timer = setTimeout(() => setSpinToken((t) => t + 1), FOCUS_TRANSITION_MS);
+      return () => clearTimeout(timer);
     }
   }, [isSettled, result, round.id]);
 
@@ -329,7 +341,7 @@ export function RouletteTable({
           "grid w-full gap-4",
           round.phase === "betting" ? "items-start lg:grid-cols-[300px_1fr]" : "items-center lg:grid-cols-[1fr_auto] justify-items-center",
         )}
-        transition={{ layout: { type: "spring", stiffness: 180, damping: 24 } }}
+        transition={{ layout: FOCUS_LAYOUT_TRANSITION }}
       >
         <motion.div layout className="flex flex-col items-center gap-2">
           <RouletteWheel2D
@@ -374,9 +386,8 @@ export function RouletteTable({
               key="betting"
               layout
               initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.25 }}
+              animate={{ opacity: 1, scale: 1, transition: { duration: 0.25, delay: 0.15 } }}
+              exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
               className="flex flex-col gap-2"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
