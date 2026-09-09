@@ -11,6 +11,8 @@ import { RouletteWheel3D } from "./wheel-3d/scene";
 import { useWebglSupport } from "./wheel-3d/use-webgl-support";
 import { CameraControls } from "./wheel-3d/camera-controls";
 import type { CameraPresetId } from "./wheel-3d/camera-presets";
+import { SpinSpeedToggle } from "./wheel-3d/spin-speed-toggle";
+import { SPIN_DURATION_NORMAL_MS, SPIN_DURATION_FAST_MS } from "./wheel-3d/spin-curve";
 import { BettingGrid, type BetTotals } from "./betting-grid";
 import { ChipSelector } from "./chip-selector";
 import type { ChipDenomination } from "./chip-denominations";
@@ -39,6 +41,22 @@ export function RouletteTable({
   const webglSupported = useWebglSupport();
   const [cameraPreset, setCameraPreset] = useState<CameraPresetId>("classic");
   const [cameraResetToken, setCameraResetToken] = useState(0);
+  const [quickSpin, setQuickSpin] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("prive-quick-spin") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("prive-quick-spin", String(quickSpin));
+    } catch {
+      // ignore (private browsing etc.)
+    }
+  }, [quickSpin]);
 
   const isSettled = round.phase === "settled";
   const result = isSettled ? (round.result as RouletteResult | null) : null;
@@ -256,12 +274,16 @@ export function RouletteTable({
             winningNumber={result?.number ?? null}
             cameraPreset={cameraPreset}
             cameraResetToken={cameraResetToken}
+            durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
           />
-          <CameraControls
-            preset={cameraPreset}
-            onPresetChange={setCameraPreset}
-            onReset={() => setCameraResetToken((t) => t + 1)}
-          />
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <CameraControls
+              preset={cameraPreset}
+              onPresetChange={setCameraPreset}
+              onReset={() => setCameraResetToken((t) => t + 1)}
+            />
+            <SpinSpeedToggle quick={quickSpin} onChange={setQuickSpin} />
+          </div>
         </>
       )}
 

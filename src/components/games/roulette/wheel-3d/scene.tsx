@@ -39,6 +39,7 @@ function SpinRig({
     setProgress(0);
 
     sound.spinStart();
+    sound.wheelHum(durationMs);
     tickTimers.current.forEach(clearTimeout);
     tickTimers.current = [];
     const bounceStart = durationMs * 0.5;
@@ -48,6 +49,12 @@ function SpinRig({
       const t = bounceStart + ((bounceEnd - bounceStart) * i) / tickCount;
       tickTimers.current.push(setTimeout(() => sound.ballTick(), t));
     }
+    // Heavier bounce thuds during the hop envelope's active window (see
+    // ballPose in spin-curve.ts) — sparser and lower than the ballTick skips above.
+    [0.6, 0.68, 0.76].forEach((frac) => {
+      tickTimers.current.push(setTimeout(() => sound.ballBounce(), durationMs * frac));
+    });
+    tickTimers.current.push(setTimeout(() => sound.settle(), durationMs));
     tickTimers.current.push(setTimeout(() => sound.win(), durationMs + 150));
 
     return () => {

@@ -95,13 +95,56 @@ function noiseBurst(duration: number, { gain = 0.08, delay = 0 }: { gain?: numbe
   source.start(start);
 }
 
+/** Soft continuous whirring tone for the body of a spin — frequency and a lowpass
+ * cutoff both ramp down over `durationMs` to track the wheel's own deceleration
+ * (easeOutQuint), then fade out just before the ball settles. */
+function wheelHum(durationMs: number) {
+  if (!isSoundEnabled()) return;
+  const audioCtx = getContext();
+  if (!audioCtx) return;
+
+  const dur = durationMs / 1000;
+  const start = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(140, start);
+  osc.frequency.exponentialRampToValueAtTime(55, start + dur * 0.9);
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(900, start);
+  filter.frequency.exponentialRampToValueAtTime(220, start + dur * 0.9);
+
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.setValueAtTime(0.0001, start);
+  gainNode.gain.exponentialRampToValueAtTime(0.05, start + 0.3);
+  gainNode.gain.setValueAtTime(0.05, start + dur * 0.75);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, start + dur * 0.95);
+
+  osc.connect(filter).connect(gainNode).connect(audioCtx.destination);
+  osc.start(start);
+  osc.stop(start + dur);
+}
+
 export const sound = {
   chip: () => tone(720, 0.08, { type: "square", gain: 0.06 }),
   cardFlip: () => noiseBurst(0.12, { gain: 0.1 }),
   spinStart: () => {
     tone(180, 0.9, { type: "sawtooth", gain: 0.05, freqEnd: 420 });
   },
+  wheelHum,
   ballTick: () => tone(1400, 0.03, { type: "square", gain: 0.03 }),
+  /** Heavier than ballTick — the ball actually striking a separator, a few times
+   * near the end of the bounce window rather than the whole skipping run. */
+  ballBounce: (delay = 0) => {
+    tone(220, 0.06, { type: "sine", gain: 0.09, delay, freqEnd: 120 });
+    noiseBurst(0.05, { gain: 0.05, delay });
+  },
+  /** Final thunk the instant the ball settles into its pocket. */
+  settle: () => {
+    tone(140, 0.18, { type: "sine", gain: 0.12, freqEnd: 60 });
+    noiseBurst(0.1, { gain: 0.06 });
+  },
   win: () => {
     [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) =>
       tone(freq, 0.35, { type: "triangle", gain: 0.12, delay: i * 0.09 }),
