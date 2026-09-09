@@ -97,6 +97,7 @@ export function RouletteWheel3D({
   durationMs = SPIN_DURATION_NORMAL_MS,
   cameraPreset = "classic",
   cameraResetToken = 0,
+  onSettled,
   className,
 }: {
   spinToken: number;
@@ -104,6 +105,10 @@ export function RouletteWheel3D({
   durationMs?: number;
   cameraPreset?: CameraPresetId;
   cameraResetToken?: number;
+  /** Fires once, exactly when the ball visually reaches its final resting pose
+   * (progress t>=1) — the signal callers should wait for before revealing the
+   * result/payout, rather than the instant the round settles server-side. */
+  onSettled?: () => void;
   className?: string;
 }) {
   const dpr = useMemo<[number, number]>(() => [1, 1.75], []);
@@ -141,7 +146,7 @@ export function RouletteWheel3D({
             spinToken={spinToken}
             winningNumber={winningNumber}
             durationMs={durationMs}
-            onSettled={() => {}}
+            onSettled={onSettled ?? (() => {})}
           />
         </Suspense>
 

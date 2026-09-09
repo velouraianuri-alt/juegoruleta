@@ -13,6 +13,10 @@ import { CameraControls } from "./wheel-3d/camera-controls";
 import type { CameraPresetId } from "./wheel-3d/camera-presets";
 import { SpinSpeedToggle } from "./wheel-3d/spin-speed-toggle";
 import { SPIN_DURATION_NORMAL_MS, SPIN_DURATION_FAST_MS } from "./wheel-3d/spin-curve";
+// Matches roulette-wheel.tsx's hardcoded `transition: transform 4200ms` — the CSS
+// fallback wheel has no onSettled callback of its own, so this is how long the
+// result reveal waits before showing when that wheel is the one rendering.
+const CSS_WHEEL_REVEAL_MS = 4200;
 import { BettingGrid, type BetTotals } from "./betting-grid";
 import { ChipSelector } from "./chip-selector";
 import type { ChipDenomination } from "./chip-denominations";
@@ -37,6 +41,10 @@ export function RouletteTable({
   const [chip, setChip] = useState<ChipDenomination>(100);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [spinToken, setSpinToken] = useState(0);
+  // Stays false for the whole spin animation — flips to true only once the wheel
+  // itself confirms the ball has visually landed, so the result/payout can never
+  // spoil itself before the spin actually finishes playing.
+  const [revealReady, setRevealReady] = useState(false);
   const revealedFor = useRef<string | null>(null);
   const webglSupported = useWebglSupport();
   const [cameraPreset, setCameraPreset] = useState<CameraPresetId>("classic");
@@ -143,9 +151,31 @@ export function RouletteTable({
   useEffect(() => {
     if (isSettled && result && revealedFor.current !== round.id) {
       revealedFor.current = round.id;
+      setRevealReady(false);
       setSpinToken((t) => t + 1);
     }
   }, [isSettled, result, round.id]);
+
+  // The CSS fallback wheel (no WebGL2) has no onSettled callback of its own —
+  // its spin is a fixed-duration CSS transition, so time the reveal to match it.
+  // The 3D wheel instead flips revealReady via its own onSettled prop below.
+  useEffect(() => {
+    if (webglSupported !== false || spinToken === 0) return;
+    const timer = setTimeout(() => setRevealReady(true), CSS_WHEEL_REVEAL_MS);
+    return () => clearTimeout(timer);
+  }, [spinToken, webglSupported]);
+
+  // Safety net for the 3D wheel: its onSettled fires from a requestAnimationFrame
+  // loop, which browsers pause while the tab is backgrounded — if the player
+  // switches away mid-spin, rAF (and the reveal) would otherwise stay stalled
+  // until they come back. Force the reveal open a few seconds past the spin's own
+  // duration regardless, so "Nueva ronda" can never be permanently unreachable.
+  useEffect(() => {
+    if (webglSupported === false || spinToken === 0) return;
+    const durationMs = quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS;
+    const timer = setTimeout(() => setRevealReady(true), durationMs + 3000);
+    return () => clearTimeout(timer);
+  }, [spinToken, webglSupported, quickSpin]);
 
   const myBets = bets.filter((b) => b.user_id === currentUserId);
   const myStake = myBets.reduce((sum, b) => sum + b.amount, 0);
@@ -234,15 +264,15 @@ export function RouletteTable({
     sound.chip();
   };
 
+  // Fires the instant revealReady flips true — i.e. exactly when the result panel
+  // itself appears, not on a fixed timer that used to assume a single wheel duration.
   useEffect(() => {
-    if (isSettled && result) {
-      const timer = setTimeout(() => {
-        if (myNet > 0) sound.win();
-        else if (myStake > 0) sound.lose();
-      }, 4300);
-      return () => clearTimeout(timer);
+    if (revealReady && isSettled && result) {
+      if (myNet > 0) sound.win();
+      else if (myStake > 0) sound.lose();
     }
-  }, [isSettled, result, myNet, myStake]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealReady]);
 
   return (
     <div className="flex w-full flex-col items-center gap-5">
@@ -252,7 +282,7 @@ export function RouletteTable({
           <p className="text-xs text-muted-foreground">
             {round.phase === "betting"
               ? `Apuestas abiertas · ${secondsLeft}s`
-              : isSettled
+              : isSettled && revealReady
                 ? "Ronda resuelta"
                 : "Girando..."}
           </p>
@@ -275,6 +305,7 @@ export function RouletteTable({
             cameraPreset={cameraPreset}
             cameraResetToken={cameraResetToken}
             durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
+            onSettled={() => setRevealReady(true)}
           />
           <div className="flex flex-wrap items-center justify-center gap-2">
             <CameraControls
@@ -289,7 +320,7 @@ export function RouletteTable({
 
       <ResultsHistory roomId={roomId} />
 
-      {isSettled && result && (
+      {isSettled && result && revealReady && (
         <div className="glass-panel flex w-full flex-col items-center gap-2 rounded-xl p-4 text-center">
           <p className="text-sm text-muted-foreground">
             Salió el <span className="font-semibold text-gold-200">{result.number}</span>{" "}
