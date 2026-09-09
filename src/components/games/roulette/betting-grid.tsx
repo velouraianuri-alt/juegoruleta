@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { colorForNumber } from "./wheel-data";
 import { NUMBER_ROWS, buildHitZones } from "./roulette-grid-geometry";
@@ -21,6 +21,39 @@ const ZONE_TAP = { scale: 1.6 };
 
 const ZERO_CLIP_PATH = "polygon(0% 50%, 32% 0%, 100% 0%, 100% 100%, 32% 100%)";
 
+const ALL_NUMBERS = Array.from({ length: 36 }, (_, i) => i + 1);
+
+/** Every straight-up number an outside bet covers, so hovering e.g. "1ª docena"
+ * or the red diamond can light up all of its numbers on the grid — mirrors the
+ * exact groupings fn_settle_roulette_round pays out on. Zero belongs to none
+ * of these (European single-zero), so it never highlights here. */
+function numbersForOutsideBet(type: RouletteBetType, value: string | null): number[] {
+  switch (type) {
+    case "red":
+      return ALL_NUMBERS.filter((n) => colorForNumber(n) === "red");
+    case "black":
+      return ALL_NUMBERS.filter((n) => colorForNumber(n) === "black");
+    case "even":
+      return ALL_NUMBERS.filter((n) => n % 2 === 0);
+    case "odd":
+      return ALL_NUMBERS.filter((n) => n % 2 === 1);
+    case "low":
+      return ALL_NUMBERS.filter((n) => n <= 18);
+    case "high":
+      return ALL_NUMBERS.filter((n) => n >= 19);
+    case "dozen": {
+      const d = Number(value);
+      return ALL_NUMBERS.filter((n) => n > (d - 1) * 12 && n <= d * 12);
+    }
+    case "column": {
+      const c = Number(value);
+      return NUMBER_ROWS[3 - c];
+    }
+    default:
+      return [];
+  }
+}
+
 export function BettingGrid({
   disabled,
   onBet,
@@ -32,6 +65,12 @@ export function BettingGrid({
 }) {
   const cellKey = (type: string, value: string) => `${type}:${value}`;
   const hitZones = useMemo(() => buildHitZones(), []);
+  const [highlighted, setHighlighted] = useState<Set<number> | null>(null);
+
+  const outsideHoverProps = (type: RouletteBetType, value: string | null) => ({
+    onHoverStart: () => setHighlighted(new Set(numbersForOutsideBet(type, value))),
+    onHoverEnd: () => setHighlighted(null),
+  });
 
   return (
     <div className="felt-texture w-full min-w-0 overflow-x-auto rounded-2xl border-2 border-gold-500/50 p-2 shadow-[inset_0_2px_10px_rgba(0,0,0,0.4)] sm:p-3">
@@ -72,8 +111,9 @@ export function BettingGrid({
                   whileTap={disabled ? undefined : CELL_TAP}
                   transition={CELL_SPRING}
                   className={cn(
-                    "absolute inset-[8%] flex items-center justify-center rounded-full text-xs font-semibold text-white disabled:pointer-events-none disabled:opacity-50 sm:text-sm lg:text-base",
+                    "absolute inset-[8%] flex items-center justify-center rounded-full text-xs font-semibold text-white transition-shadow disabled:pointer-events-none disabled:opacity-50 sm:text-sm lg:text-base",
                     colorForNumber(n) === "red" ? "bg-crimson-500" : "bg-noir-800",
+                    highlighted?.has(n) && "ring-2 ring-gold-200 ring-offset-1 ring-offset-felt-700 brightness-125",
                   )}
                 >
                   {n}
@@ -124,6 +164,7 @@ export function BettingGrid({
               whileHover={disabled ? undefined : CELL_HOVER}
               whileTap={disabled ? undefined : CELL_TAP}
               transition={CELL_SPRING}
+              {...outsideHoverProps("column", String(c))}
               className="relative flex h-8 flex-1 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[9px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-[10px] lg:h-10 lg:text-xs"
             >
               2:1
@@ -148,6 +189,7 @@ export function BettingGrid({
               whileHover={disabled ? undefined : CELL_HOVER}
               whileTap={disabled ? undefined : CELL_TAP}
               transition={CELL_SPRING}
+              {...outsideHoverProps("dozen", String(d))}
               className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-xs text-gold-200 disabled:pointer-events-none disabled:opacity-50 lg:h-10 lg:text-sm"
             >
               {d === 1 ? "1ª docena" : d === 2 ? "2ª docena" : "3ª docena"}
@@ -171,6 +213,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
+            {...outsideHoverProps("low", null)}
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             1–18
@@ -187,6 +230,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
+            {...outsideHoverProps("even", null)}
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             PAR
@@ -203,6 +247,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
+            {...outsideHoverProps("red", null)}
             aria-label="Rojo"
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50 lg:h-10"
           >
@@ -220,6 +265,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
+            {...outsideHoverProps("black", null)}
             aria-label="Negro"
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50 lg:h-10"
           >
@@ -237,6 +283,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
+            {...outsideHoverProps("odd", null)}
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             IMPAR
@@ -253,6 +300,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
+            {...outsideHoverProps("high", null)}
             className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             19–36
