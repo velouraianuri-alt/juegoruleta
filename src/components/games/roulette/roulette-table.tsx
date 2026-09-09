@@ -15,6 +15,7 @@ import { BettingGrid, type BetTotals } from "./betting-grid";
 import { ChipSelector } from "./chip-selector";
 import type { ChipDenomination } from "./chip-denominations";
 import { BetActions } from "./bet-actions";
+import { ResultsHistory } from "./results-history";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GameRound, RouletteBet, RouletteBetType, RouletteResult } from "@/lib/supabase/types";
@@ -263,6 +264,8 @@ export function RouletteTable({
           />
         </>
       )}
+
+      <ResultsHistory roomId={roomId} />
 
       {isSettled && result && (
         <div className="glass-panel flex w-full flex-col items-center gap-2 rounded-xl p-4 text-center">
