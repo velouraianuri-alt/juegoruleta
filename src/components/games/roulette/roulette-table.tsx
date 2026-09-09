@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { callRpc } from "@/lib/supabase/rpc";
-import { useOwnBalance } from "@/hooks/use-own-balance";
+import { useOwnBalance, setBalanceHold } from "@/hooks/use-own-balance";
 import { sound } from "@/lib/sound";
 import { RouletteWheel2D } from "./wheel-2d/wheel-canvas";
 import { SpinSpeedToggle } from "./wheel-3d/spin-speed-toggle";
@@ -75,6 +75,33 @@ export function RouletteTable({
 
   const isSettled = round.phase === "settled";
   const result = isSettled ? (round.result as RouletteResult | null) : null;
+
+  // Holds every useOwnBalance(currentUserId) reader's displayed value — this
+  // table's own "Tu saldo" AND the persistent app header's balance chip alike
+  // — from the betting deadline until the spin is revealed, so a settle's
+  // payout credit can't tick the balance up anywhere before the ball visually
+  // lands. Gating this on `isSettled` alone loses the race in practice: that
+  // flag only flips once the round's own realtime event round-trips back to
+  // this client, and the balance table's *separate* realtime channel can (and
+  // did, confirmed live) deliver the credited value first. A `setTimeout`
+  // scheduled for the exact server deadline engages the hold independently of
+  // any of that, before fn_settle_roulette_round can plausibly have run.
+  useEffect(() => {
+    if (round.phase !== "betting" || !round.phase_ends_at) return;
+    const delay = Math.max(0, new Date(round.phase_ends_at).getTime() - Date.now());
+    const timer = setTimeout(() => setBalanceHold(currentUserId, true), delay);
+    return () => clearTimeout(timer);
+  }, [round.id, round.phase, round.phase_ends_at, currentUserId]);
+
+  // Releases the hold the moment a fresh betting round starts (in case the
+  // previous one never got revealed, e.g. a tab backgrounded through it) or
+  // once this round's own reveal actually plays.
+  useEffect(() => {
+    if (round.phase === "betting" || revealReady) setBalanceHold(currentUserId, false);
+  }, [round.id, round.phase, revealReady, currentUserId]);
+
+  // Safety net: never leave a hold engaged past this table's own lifetime.
+  useEffect(() => () => setBalanceHold(currentUserId, false), [currentUserId]);
 
   // Fetch + subscribe to this round's bets.
   useEffect(() => {
