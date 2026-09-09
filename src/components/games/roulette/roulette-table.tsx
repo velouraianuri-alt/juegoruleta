@@ -12,11 +12,11 @@ import { useWebglSupport } from "./wheel-3d/use-webgl-support";
 import { CameraControls } from "./wheel-3d/camera-controls";
 import type { CameraPresetId } from "./wheel-3d/camera-presets";
 import { BettingGrid, type BetTotals } from "./betting-grid";
+import { ChipSelector } from "./chip-selector";
+import type { ChipDenomination } from "./chip-denominations";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GameRound, RouletteBet, RouletteBetType, RouletteResult } from "@/lib/supabase/types";
-
-const CHIP_VALUES = [10, 50, 100, 500, 1000];
 
 export function RouletteTable({
   round,
@@ -30,7 +30,7 @@ export function RouletteTable({
   const supabase = useMemo(() => createClient(), []);
   const balance = useOwnBalance(currentUserId);
   const [bets, setBets] = useState<RouletteBet[]>([]);
-  const [chip, setChip] = useState(100);
+  const [chip, setChip] = useState<ChipDenomination>(100);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [spinToken, setSpinToken] = useState(0);
   const revealedFor = useRef<string | null>(null);
@@ -226,23 +226,7 @@ export function RouletteTable({
 
       {round.phase === "betting" && (
         <>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Ficha:</span>
-            {CHIP_VALUES.map((v) => (
-              <button
-                key={v}
-                onClick={() => setChip(v)}
-                className={cn(
-                  "flex size-9 items-center justify-center rounded-full border text-[10px] font-bold transition-transform hover:scale-105",
-                  chip === v
-                    ? "border-gold-400 bg-gold-400 text-noir-950"
-                    : "border-gold-400/30 bg-noir-800 text-gold-200",
-                )}
-              >
-                {v >= 1000 ? `${v / 1000}k` : v}
-              </button>
-            ))}
-          </div>
+          <ChipSelector value={chip} onChange={setChip} />
 
           <BettingGrid disabled={secondsLeft <= 0} onBet={onBet} totals={totals} />
 

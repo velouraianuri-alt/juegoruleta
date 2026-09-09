@@ -1,6 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { colorForNumber } from "./wheel-data";
+import { ChipStack } from "./chip-stack";
 import { cn } from "@/lib/utils";
 import type { RouletteBetType } from "@/lib/supabase/types";
 
@@ -14,6 +16,10 @@ export interface BetTotals {
   straight: Record<number, number>;
   outside: Partial<Record<string, number>>;
 }
+
+const CELL_HOVER = { y: -3, scale: 1.05, boxShadow: "0 8px 16px -4px rgba(212,175,55,0.5), 0 0 0 1px rgba(212,175,55,0.45)" };
+const CELL_TAP = { scale: 0.96, y: 0 };
+const CELL_SPRING = { type: "spring" as const, stiffness: 500, damping: 26 };
 
 export function BettingGrid({
   disabled,
@@ -38,33 +44,39 @@ export function BettingGrid({
   return (
     <div className="flex w-full flex-col gap-1.5">
       <div className="flex gap-1.5">
-        <button
+        <motion.button
           type="button"
           disabled={disabled}
           onClick={() => onBet("straight", "0")}
-          className="relative flex w-10 shrink-0 items-center justify-center rounded-md bg-felt-500 text-sm font-bold text-white transition-transform hover:scale-105 disabled:pointer-events-none disabled:opacity-50 sm:w-12"
+          whileHover={disabled ? undefined : CELL_HOVER}
+          whileTap={disabled ? undefined : CELL_TAP}
+          transition={CELL_SPRING}
+          className="relative flex w-10 shrink-0 items-center justify-center rounded-md bg-felt-500 text-sm font-bold text-white disabled:pointer-events-none disabled:opacity-50 sm:w-12"
         >
           0
-          {totals.straight[0] > 0 && <ChipBadge amount={totals.straight[0]} />}
-        </button>
+          {totals.straight[0] > 0 && <ChipStack amount={totals.straight[0]} />}
+        </motion.button>
 
         <div className="grid flex-1 grid-rows-3 gap-1">
           {NUMBER_ROWS.map((row, i) => (
             <div key={i} className="grid grid-cols-12 gap-1">
               {row.map((n) => (
-                <button
+                <motion.button
                   key={n}
                   type="button"
                   disabled={disabled}
                   onClick={() => onBet("straight", String(n))}
+                  whileHover={disabled ? undefined : CELL_HOVER}
+                  whileTap={disabled ? undefined : CELL_TAP}
+                  transition={CELL_SPRING}
                   className={cn(
-                    "relative flex h-8 items-center justify-center rounded-md text-xs font-semibold text-white transition-transform hover:scale-105 disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-sm",
+                    "relative flex h-8 items-center justify-center rounded-md text-xs font-semibold text-white disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-sm",
                     colorForNumber(n) === "red" ? "bg-crimson-500" : "bg-noir-700",
                   )}
                 >
                   {n}
-                  {totals.straight[n] > 0 && <ChipBadge amount={totals.straight[n]} />}
-                </button>
+                  {totals.straight[n] > 0 && <ChipStack amount={totals.straight[n]} />}
+                </motion.button>
               ))}
             </div>
           ))}
@@ -73,65 +85,66 @@ export function BettingGrid({
 
       <div className="grid grid-cols-3 gap-1.5">
         {[1, 2, 3].map((d) => (
-          <button
+          <motion.button
             key={d}
             type="button"
             disabled={disabled}
             onClick={() => onBet("dozen", String(d))}
-            className="relative flex h-8 items-center justify-center rounded-md bg-white/5 text-xs text-gold-200 hover:bg-white/10 disabled:pointer-events-none disabled:opacity-50"
+            whileHover={disabled ? undefined : CELL_HOVER}
+            whileTap={disabled ? undefined : CELL_TAP}
+            transition={CELL_SPRING}
+            className="relative flex h-8 items-center justify-center rounded-md bg-white/5 text-xs text-gold-200 disabled:pointer-events-none disabled:opacity-50"
           >
             {d === 1 ? "1ª docena" : d === 2 ? "2ª docena" : "3ª docena"}
             {totals.outside[cellKey("dozen", String(d))] ? (
-              <ChipBadge amount={totals.outside[cellKey("dozen", String(d))]!} />
+              <ChipStack amount={totals.outside[cellKey("dozen", String(d))]!} />
             ) : null}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       <div className="grid grid-cols-6 gap-1.5">
         {outsideBets.map((b) => (
-          <button
+          <motion.button
             key={b.label}
             type="button"
             disabled={disabled}
             onClick={() => onBet(b.type, b.value)}
+            whileHover={disabled ? undefined : CELL_HOVER}
+            whileTap={disabled ? undefined : CELL_TAP}
+            transition={CELL_SPRING}
             className={cn(
-              "relative flex h-8 items-center justify-center rounded-md text-[10px] font-medium hover:brightness-110 disabled:pointer-events-none disabled:opacity-50 sm:text-xs",
-              b.className || "bg-white/5 text-gold-200 hover:bg-white/10",
+              "relative flex h-8 items-center justify-center rounded-md text-[10px] font-medium disabled:pointer-events-none disabled:opacity-50 sm:text-xs",
+              b.className || "bg-white/5 text-gold-200",
             )}
           >
             {b.label}
             {totals.outside[cellKey(b.type, b.value ?? "")] ? (
-              <ChipBadge amount={totals.outside[cellKey(b.type, b.value ?? "")]!} />
+              <ChipStack amount={totals.outside[cellKey(b.type, b.value ?? "")]!} />
             ) : null}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       <div className="grid grid-cols-3 gap-1.5">
         {[1, 2, 3].map((c) => (
-          <button
+          <motion.button
             key={c}
             type="button"
             disabled={disabled}
             onClick={() => onBet("column", String(c))}
-            className="relative flex h-7 items-center justify-center rounded-md bg-white/5 text-[10px] text-gold-200 hover:bg-white/10 disabled:pointer-events-none disabled:opacity-50"
+            whileHover={disabled ? undefined : CELL_HOVER}
+            whileTap={disabled ? undefined : CELL_TAP}
+            transition={CELL_SPRING}
+            className="relative flex h-7 items-center justify-center rounded-md bg-white/5 text-[10px] text-gold-200 disabled:pointer-events-none disabled:opacity-50"
           >
             Columna {c} (2:1)
             {totals.outside[cellKey("column", String(c))] ? (
-              <ChipBadge amount={totals.outside[cellKey("column", String(c))]!} />
+              <ChipStack amount={totals.outside[cellKey("column", String(c))]!} />
             ) : null}
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>
-  );
-}
-
-function ChipBadge({ amount }: { amount: number }) {
-  return (
-    <span className="absolute -top-1.5 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-noir-950 bg-gold-400 px-1 text-[9px] font-bold text-noir-950 shadow">
-      {amount >= 1000 ? `${Math.round(amount / 100) / 10}k` : amount}
-    </span>
   );
 }
