@@ -175,7 +175,7 @@ export function RoomClient({
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 sm:px-6">
+    <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-6 sm:px-6">
       <div className="glass-panel flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
         <div>
           <h1 className="font-heading text-xl font-bold text-gold-100">{room.name}</h1>

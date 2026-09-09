@@ -44,7 +44,7 @@ export function BettingGrid({
           whileTap={disabled ? undefined : CELL_TAP}
           transition={CELL_SPRING}
           style={{ clipPath: ZERO_CLIP_PATH }}
-          className="relative flex w-9 shrink-0 items-center justify-center border border-gold-200/40 bg-felt-500 pl-1 text-sm font-bold text-white disabled:pointer-events-none disabled:opacity-50 sm:w-11"
+          className="relative flex w-9 shrink-0 items-center justify-center border border-gold-200/40 bg-felt-500 pl-1 text-sm font-bold text-white disabled:pointer-events-none disabled:opacity-50 sm:w-11 lg:w-14 lg:text-base"
         >
           0
           {totals.straight[0] > 0 && <ChipStack amount={totals.straight[0]} />}
@@ -66,7 +66,7 @@ export function BettingGrid({
                   whileTap={disabled ? undefined : CELL_TAP}
                   transition={CELL_SPRING}
                   className={cn(
-                    "absolute inset-[8%] flex items-center justify-center rounded-full text-[10px] font-semibold text-white disabled:pointer-events-none disabled:opacity-50 sm:text-xs",
+                    "absolute inset-[8%] flex items-center justify-center rounded-full text-xs font-semibold text-white disabled:pointer-events-none disabled:opacity-50 sm:text-sm lg:text-base",
                     colorForNumber(n) === "red" ? "bg-crimson-500" : "bg-noir-800",
                   )}
                 >
@@ -93,7 +93,7 @@ export function BettingGrid({
                   whileTap={disabled ? undefined : ZONE_TAP}
                   transition={CELL_SPRING}
                   title={`${zone.type === "split" ? "División" : "Esquina"}: ${zone.numbers.join(", ")}`}
-                  className="pointer-events-auto absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold-200/70 bg-gold-100/30 disabled:pointer-events-none disabled:opacity-30 sm:size-3"
+                  className="pointer-events-auto absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold-200/70 bg-gold-100/30 disabled:pointer-events-none disabled:opacity-30 sm:size-3 lg:size-3.5"
                   style={{ left: `${zone.xPct}%`, top: `${zone.yPct}%` }}
                 >
                   {amount ? <ChipStack amount={amount} /> : null}
@@ -103,7 +103,7 @@ export function BettingGrid({
           </div>
         </div>
 
-        <div className="flex w-9 shrink-0 flex-col gap-1 sm:w-11">
+        <div className="flex w-9 shrink-0 flex-col gap-1 sm:w-11 lg:w-14">
           {[3, 2, 1].map((c) => (
             <motion.button
               key={c}
@@ -113,7 +113,7 @@ export function BettingGrid({
               whileHover={disabled ? undefined : CELL_HOVER}
               whileTap={disabled ? undefined : CELL_TAP}
               transition={CELL_SPRING}
-              className="relative flex h-8 flex-1 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[9px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-[10px]"
+              className="relative flex h-8 flex-1 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[9px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-[10px] lg:h-10 lg:text-xs"
             >
               2:1
               {totals.outside[cellKey("column", String(c))] ? (
@@ -135,7 +135,7 @@ export function BettingGrid({
               whileHover={disabled ? undefined : CELL_HOVER}
               whileTap={disabled ? undefined : CELL_TAP}
               transition={CELL_SPRING}
-              className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-xs text-gold-200 disabled:pointer-events-none disabled:opacity-50"
+              className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-xs text-gold-200 disabled:pointer-events-none disabled:opacity-50 lg:h-10 lg:text-sm"
             >
               {d === 1 ? "1ª docena" : d === 2 ? "2ª docena" : "3ª docena"}
               {totals.outside[cellKey("dozen", String(d))] ? (
@@ -144,7 +144,7 @@ export function BettingGrid({
             </motion.button>
           ))}
         </div>
-        <div className="w-9 shrink-0 sm:w-11" />
+        <div className="w-9 shrink-0 sm:w-11 lg:w-14" />
       </div>
 
       <div className="mt-1 flex gap-1">
@@ -156,7 +156,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
-            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs"
+            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             1–18
             {totals.outside[cellKey("low", "")] ? <ChipStack amount={totals.outside[cellKey("low", "")]!} /> : null}
@@ -168,7 +168,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
-            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs"
+            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             PAR
             {totals.outside[cellKey("even", "")] ? <ChipStack amount={totals.outside[cellKey("even", "")]!} /> : null}
@@ -181,9 +181,9 @@ export function BettingGrid({
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
             aria-label="Rojo"
-            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50"
+            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50 lg:h-10"
           >
-            <span className="size-4 rotate-45 border-2 border-crimson-400 sm:size-5" />
+            <span className="size-4 rotate-45 border-2 border-crimson-400 sm:size-5 lg:size-6" />
             {totals.outside[cellKey("red", "")] ? <ChipStack amount={totals.outside[cellKey("red", "")]!} /> : null}
           </motion.button>
           <motion.button
@@ -194,9 +194,9 @@ export function BettingGrid({
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
             aria-label="Negro"
-            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50"
+            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 disabled:pointer-events-none disabled:opacity-50 lg:h-10"
           >
-            <span className="size-4 rotate-45 border-2 border-white bg-noir-950 sm:size-5" />
+            <span className="size-4 rotate-45 border-2 border-white bg-noir-950 sm:size-5 lg:size-6" />
             {totals.outside[cellKey("black", "")] ? <ChipStack amount={totals.outside[cellKey("black", "")]!} /> : null}
           </motion.button>
           <motion.button
@@ -206,7 +206,7 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
-            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs"
+            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             IMPAR
             {totals.outside[cellKey("odd", "")] ? <ChipStack amount={totals.outside[cellKey("odd", "")]!} /> : null}
@@ -218,13 +218,13 @@ export function BettingGrid({
             whileHover={disabled ? undefined : CELL_HOVER}
             whileTap={disabled ? undefined : CELL_TAP}
             transition={CELL_SPRING}
-            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs"
+            className="relative flex h-8 items-center justify-center rounded-md border border-gold-200/30 bg-felt-700/60 text-[10px] font-medium text-gold-200 disabled:pointer-events-none disabled:opacity-50 sm:text-xs lg:h-10 lg:text-sm"
           >
             19–36
             {totals.outside[cellKey("high", "")] ? <ChipStack amount={totals.outside[cellKey("high", "")]!} /> : null}
           </motion.button>
         </div>
-        <div className="w-9 shrink-0 sm:w-11" />
+        <div className="w-9 shrink-0 sm:w-11 lg:w-14" />
       </div>
     </div>
   );
