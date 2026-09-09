@@ -180,15 +180,11 @@ export function RouletteTable({
     myBetsRef.current = myBets;
   }, [myBets]);
 
-  // "Repetir" replays the bets from the room's previous round for this user —
-  // captured right as the round transitions, before this round's own bets replace
-  // them in `bets`.
+  // "Repetir" (manual) and the auto-repeat effect below both need the previous
+  // round's bets — captured once, right as the round transitions, before this
+  // round's own bets replace them in `bets`. See that effect for why the capture
+  // itself lives there instead of here.
   const [previousRoundBets, setPreviousRoundBets] = useState<RouletteBet[]>([]);
-  useEffect(() => {
-    return () => {
-      setPreviousRoundBets(myBetsRef.current);
-    };
-  }, [round.id]);
 
   const totals: BetTotals = { straight: {}, outside: {} };
   for (const b of myBets) {
@@ -252,6 +248,38 @@ export function RouletteTable({
     }
     sound.chip();
   };
+
+  // Captures the outgoing round's bets on every round.id change (for the manual
+  // "Repetir" button's `previousRoundBets` state) and auto-repeats them into the
+  // new round the instant its betting window opens — so the table doesn't come
+  // back empty after every spin. "Limpiar" refunds them (same RPC as clearing
+  // any other bet) for anyone who doesn't want to repeat that round.
+  //
+  // Uses a ref (previousRoundBetsRef) rather than the state above to decide
+  // *whether* to auto-repeat, so that decision doesn't depend on a second render
+  // having happened yet: this effect's cleanup (capturing the outgoing round's
+  // bets) and its own body for the *new* round.id run back-to-back in the same
+  // synchronous effect-flush, so the ref already holds the right value by the
+  // time the body reads it — no extra render to race against.
+  const previousRoundBetsRef = useRef<RouletteBet[]>([]);
+  const autoRepeatedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    // A new round.id always starts out in 'betting' phase (fn_start_roulette_round
+    // inserts it that way), so keying on round.id alone catches every real
+    // transition without also re-firing on the later betting->settled phase
+    // change of the *same* round.
+    if (round.phase === "betting" && autoRepeatedForRef.current !== round.id) {
+      autoRepeatedForRef.current = round.id;
+      if (previousRoundBetsRef.current.length > 0) {
+        void replayBets(previousRoundBetsRef.current);
+      }
+    }
+    return () => {
+      previousRoundBetsRef.current = myBetsRef.current;
+      setPreviousRoundBets(myBetsRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round.id]);
 
   // Fires the instant revealReady flips true — i.e. exactly when the result panel
   // itself appears, not on a fixed timer that used to assume a single wheel duration.

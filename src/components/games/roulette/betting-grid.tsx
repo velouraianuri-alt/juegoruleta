@@ -93,7 +93,10 @@ export function BettingGrid({
                   whileTap={disabled ? undefined : ZONE_TAP}
                   transition={CELL_SPRING}
                   title={`${zone.type === "split" ? "División" : "Esquina"}: ${zone.numbers.join(", ")}`}
-                  className="pointer-events-auto absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold-200/70 bg-gold-100/30 disabled:pointer-events-none disabled:opacity-30 sm:size-3 lg:size-3.5"
+                  className={cn(
+                    "pointer-events-auto absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold-200/70 bg-gold-100/30 transition-opacity duration-150 hover:opacity-100 disabled:pointer-events-none sm:size-3 lg:size-3.5",
+                    amount ? "opacity-100" : "opacity-0",
+                  )}
                   style={{ left: `${zone.xPct}%`, top: `${zone.yPct}%` }}
                 >
                   {amount ? <ChipStack amount={amount} /> : null}
