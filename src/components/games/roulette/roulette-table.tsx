@@ -14,6 +14,7 @@ import type { CameraPresetId } from "./wheel-3d/camera-presets";
 import { BettingGrid, type BetTotals } from "./betting-grid";
 import { ChipSelector } from "./chip-selector";
 import type { ChipDenomination } from "./chip-denominations";
+import { BetActions } from "./bet-actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GameRound, RouletteBet, RouletteBetType, RouletteResult } from "@/lib/supabase/types";
@@ -63,6 +64,12 @@ export function RouletteTable({
           } else if (payload.eventType === "UPDATE") {
             const row = payload.new as RouletteBet;
             setBets((prev) => prev.map((b) => (b.id === row.id ? row : b)));
+          } else if (payload.eventType === "DELETE") {
+            // fn_cancel_roulette_bet / fn_clear_roulette_bets delete rows outright —
+            // without this the cancelled bet stays "on the table" in every client's
+            // local state until the next full refetch.
+            const row = payload.old as { id: string };
+            setBets((prev) => prev.filter((b) => b.id !== row.id));
           }
         },
       )
@@ -126,6 +133,25 @@ export function RouletteTable({
   const myPayout = isSettled ? myBets.reduce((sum, b) => sum + (b.payout ?? 0), 0) : 0;
   const myNet = myPayout - myStake;
 
+  // Snapshot of this round's bets, kept fresh every render so the round-transition
+  // effect below can read the *outgoing* round's bets from its cleanup (an effect's
+  // cleanup closure would otherwise only see whatever `bets` looked like when the
+  // effect last ran, which is stale by the time the round actually changes).
+  const myBetsRef = useRef<RouletteBet[]>(myBets);
+  useEffect(() => {
+    myBetsRef.current = myBets;
+  }, [myBets]);
+
+  // "Repetir" replays the bets from the room's previous round for this user —
+  // captured right as the round transitions, before this round's own bets replace
+  // them in `bets`.
+  const [previousRoundBets, setPreviousRoundBets] = useState<RouletteBet[]>([]);
+  useEffect(() => {
+    return () => {
+      setPreviousRoundBets(myBetsRef.current);
+    };
+  }, [round.id]);
+
   const totals: BetTotals = { straight: {}, outside: {} };
   for (const b of myBets) {
     if (b.bet_type === "straight" && b.bet_value) {
@@ -155,6 +181,38 @@ export function RouletteTable({
   const onNewRound = async () => {
     const { error } = await callRpc(supabase, "fn_start_roulette_round", { p_room_id: roomId });
     if (error) toast.error(error.message);
+  };
+
+  const onUndo = async () => {
+    if (myBets.length === 0) return;
+    const last = [...myBets].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )[0];
+    const { error } = await callRpc(supabase, "fn_cancel_roulette_bet", { p_bet_id: last.id });
+    if (error) toast.error("No se pudo deshacer la apuesta");
+  };
+
+  const onClearBets = async () => {
+    if (myBets.length === 0) return;
+    const { error } = await callRpc(supabase, "fn_clear_roulette_bets", { p_round_id: round.id });
+    if (error) toast.error("No se pudo limpiar la mesa");
+  };
+
+  const replayBets = async (source: RouletteBet[]) => {
+    if (source.length === 0) return;
+    for (const b of source) {
+      const { error } = await callRpc(supabase, "fn_place_roulette_bet", {
+        p_round_id: round.id,
+        p_bet_type: b.bet_type,
+        p_bet_value: b.bet_value,
+        p_amount: b.amount,
+      });
+      if (error) {
+        toast.error("No se pudieron repetir todas las apuestas");
+        return;
+      }
+    }
+    sound.chip();
   };
 
   useEffect(() => {
@@ -227,6 +285,16 @@ export function RouletteTable({
       {round.phase === "betting" && (
         <>
           <ChipSelector value={chip} onChange={setChip} />
+
+          <BetActions
+            disabled={secondsLeft <= 0}
+            hasCurrentBets={myBets.length > 0}
+            hasPreviousBets={previousRoundBets.length > 0}
+            onUndo={onUndo}
+            onClear={onClearBets}
+            onRepeat={() => replayBets(previousRoundBets)}
+            onDuplicate={() => replayBets(myBets)}
+          />
 
           <BettingGrid disabled={secondsLeft <= 0} onBet={onBet} totals={totals} />
 

@@ -246,6 +246,8 @@ export type Database = {
         Returns: RouletteBet;
       };
       fn_settle_roulette_round: { Args: { p_round_id: string }; Returns: GameRound };
+      fn_cancel_roulette_bet: { Args: { p_bet_id: string }; Returns: void };
+      fn_clear_roulette_bets: { Args: { p_round_id: string }; Returns: void };
       fn_start_blackjack_round: { Args: { p_room_id: string }; Returns: GameRound };
       fn_place_blackjack_bet: {
         Args: { p_round_id: string; p_amount: number };
