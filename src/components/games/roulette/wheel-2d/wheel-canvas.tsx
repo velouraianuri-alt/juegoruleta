@@ -354,6 +354,7 @@ export function RouletteWheel2D({
   return (
     <motion.div
       className={className}
+      initial={{ maxWidth }}
       animate={{ maxWidth }}
       transition={{ type: "spring", stiffness: 180, damping: 24 }}
       style={{
