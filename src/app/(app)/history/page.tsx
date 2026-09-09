@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 const BET_LABEL: Record<RouletteBetType, (value: string | null) => string> = {
   straight: (v) => `Pleno ${v}`,
+  split: (v) => `División ${v?.replace(",", "-")}`,
+  corner: (v) => `Esquina ${v?.replace(/,/g, "-")}`,
   red: () => "Rojo",
   black: () => "Negro",
   odd: () => "Impar",

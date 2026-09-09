@@ -284,7 +284,7 @@ export function RouletteTable({
   }, [revealReady]);
 
   return (
-    <div className="flex w-full flex-col items-center gap-5">
+    <div className="flex w-full flex-col gap-3">
       <div className="flex w-full items-center justify-between">
         <div>
           <p className="font-heading text-lg font-semibold text-gold-100">Ruleta europea</p>
@@ -304,72 +304,82 @@ export function RouletteTable({
         </div>
       </div>
 
-      {webglSupported === false ? (
-        <RouletteWheel spinToken={spinToken} winningNumber={result?.number ?? null} />
-      ) : (
-        <>
-          <RouletteWheel3D
-            spinToken={spinToken}
-            winningNumber={result?.number ?? null}
-            cameraPreset={cameraPreset}
-            cameraResetToken={cameraResetToken}
-            durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
-            onSettled={() => setRevealReady(true)}
-          />
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <CameraControls
-              preset={cameraPreset}
-              onPresetChange={setCameraPreset}
-              onReset={() => setCameraResetToken((t) => t + 1)}
-            />
-            <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
-          </div>
-        </>
-      )}
-
-      <ResultsHistory roomId={roomId} />
-
-      {isSettled && result && revealReady && (
-        <div className="glass-panel flex w-full flex-col items-center gap-2 rounded-xl p-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Salió el <span className="font-semibold text-gold-200">{result.number}</span>{" "}
-            ({result.color === "red" ? "rojo" : result.color === "black" ? "negro" : "verde"})
-          </p>
-          {myStake > 0 && (
-            <p className={cn("font-mono text-lg font-bold", myNet >= 0 ? "text-emerald-glow" : "text-crimson-400")}>
-              {myNet >= 0 ? "+" : ""}
-              {myNet.toLocaleString("es-ES")} fichas
-            </p>
+      {/* Wheel on the left, betting controls on the right from lg up — stacked
+          below that. Keeps everything reachable without scrolling the game panel
+          on a normal desktop window, instead of one long vertical column. */}
+      <div className="grid w-full items-start gap-4 lg:grid-cols-[300px_1fr]">
+        <div className="flex flex-col items-center gap-2">
+          {webglSupported === false ? (
+            <RouletteWheel spinToken={spinToken} winningNumber={result?.number ?? null} />
+          ) : (
+            <>
+              <RouletteWheel3D
+                spinToken={spinToken}
+                winningNumber={result?.number ?? null}
+                cameraPreset={cameraPreset}
+                cameraResetToken={cameraResetToken}
+                durationMs={quickSpin ? SPIN_DURATION_FAST_MS : SPIN_DURATION_NORMAL_MS}
+                onSettled={() => setRevealReady(true)}
+              />
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <CameraControls
+                  preset={cameraPreset}
+                  onPresetChange={setCameraPreset}
+                  onReset={() => setCameraResetToken((t) => t + 1)}
+                />
+                <SpinSpeedToggle quick={quickSpin} onChange={onQuickSpinChange} />
+              </div>
+            </>
           )}
-          <Button onClick={onNewRound} className="bg-gold-400 text-noir-950 hover:bg-gold-300">
-            Nueva ronda
-          </Button>
+
+          <ResultsHistory roomId={roomId} />
         </div>
-      )}
 
-      {round.phase === "betting" && (
-        <>
-          <ChipSelector value={chip} onChange={setChip} />
+        <div className="flex flex-col gap-2">
+          {isSettled && result && revealReady && (
+            <div className="glass-panel flex w-full flex-col items-center gap-2 rounded-xl p-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                Salió el <span className="font-semibold text-gold-200">{result.number}</span>{" "}
+                ({result.color === "red" ? "rojo" : result.color === "black" ? "negro" : "verde"})
+              </p>
+              {myStake > 0 && (
+                <p className={cn("font-mono text-lg font-bold", myNet >= 0 ? "text-emerald-glow" : "text-crimson-400")}>
+                  {myNet >= 0 ? "+" : ""}
+                  {myNet.toLocaleString("es-ES")} fichas
+                </p>
+              )}
+              <Button onClick={onNewRound} className="bg-gold-400 text-noir-950 hover:bg-gold-300">
+                Nueva ronda
+              </Button>
+            </div>
+          )}
 
-          <BetActions
-            disabled={secondsLeft <= 0}
-            hasCurrentBets={myBets.length > 0}
-            hasPreviousBets={previousRoundBets.length > 0}
-            onUndo={onUndo}
-            onClear={onClearBets}
-            onRepeat={() => replayBets(previousRoundBets)}
-            onDuplicate={() => replayBets(myBets)}
-          />
+          {round.phase === "betting" && (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <ChipSelector value={chip} onChange={setChip} />
+                <BetActions
+                  disabled={secondsLeft <= 0}
+                  hasCurrentBets={myBets.length > 0}
+                  hasPreviousBets={previousRoundBets.length > 0}
+                  onUndo={onUndo}
+                  onClear={onClearBets}
+                  onRepeat={() => replayBets(previousRoundBets)}
+                  onDuplicate={() => replayBets(myBets)}
+                />
+              </div>
 
-          <BettingGrid disabled={secondsLeft <= 0} onBet={onBet} totals={totals} />
+              <BettingGrid disabled={secondsLeft <= 0} onBet={onBet} totals={totals} />
 
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-muted-foreground">
-              En juego: <span className="font-mono text-gold-200">{myStake.toLocaleString("es-ES")}</span>
-            </span>
-          </div>
-        </>
-      )}
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-muted-foreground">
+                  En juego: <span className="font-mono text-gold-200">{myStake.toLocaleString("es-ES")}</span>
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

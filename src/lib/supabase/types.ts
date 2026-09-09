@@ -17,6 +17,8 @@ export type BlackjackHandStatus = "playing" | "stood" | "bust" | "blackjack";
 export type WalletReason = "initial" | "bet" | "payout" | "free_chips";
 export type RouletteBetType =
   | "straight"
+  | "split"
+  | "corner"
   | "red"
   | "black"
   | "odd"

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
+import { Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { WheelRotor, WheelBowl } from "./wheel-mesh";
 import { Ball } from "./ball";
@@ -115,7 +116,17 @@ export function RouletteWheel3D({
   const initialCamera = CAMERA_PRESETS.classic;
 
   return (
-    <div className={className} style={{ width: "100%", aspectRatio: "1 / 1", maxWidth: 420 }}>
+    <div
+      className={className}
+      style={{
+        width: "100%",
+        aspectRatio: "1 / 1",
+        maxWidth: 320,
+        borderRadius: "9999px",
+        background:
+          "radial-gradient(circle at 50% 42%, #123322 0%, #0a2015 45%, #05100b 78%, #030a06 100%)",
+      }}
+    >
       <Canvas
         shadows
         dpr={dpr}
@@ -123,12 +134,12 @@ export function RouletteWheel3D({
         gl={{ antialias: true, alpha: true }}
       >
         <CameraRig preset={cameraPreset} resetToken={cameraResetToken} />
-        <color attach="background" args={["#05100b"]} />
-        <fog attach="fog" args={["#05100b", 8, 16]} />
-        <ambientLight intensity={0.35} />
+        <fog attach="fog" args={["#0a2015", 7.5, 15]} />
+        <Environment preset="studio" environmentIntensity={0.5} />
+        <ambientLight intensity={0.5} />
         <directionalLight
           position={[3, 6, 3]}
-          intensity={1.4}
+          intensity={1.5}
           castShadow
           shadow-mapSize={[1024, 1024]}
           shadow-camera-near={1}
@@ -138,8 +149,11 @@ export function RouletteWheel3D({
           shadow-camera-top={4}
           shadow-camera-bottom={-4}
         />
-        <pointLight position={[-3, 2, -3]} intensity={0.4} color="#d4af37" />
-        <pointLight position={[0, 1, 4]} intensity={0.25} color="#17703f" />
+        {/* Warm rim light from behind-above to separate the wheel's silhouette
+            from the background instead of it reading as a flat dark disc. */}
+        <directionalLight position={[-2, 3, -4]} intensity={0.6} color="#f3d98a" />
+        <pointLight position={[-3, 2, -3]} intensity={0.45} color="#d4af37" />
+        <pointLight position={[0, 1, 4]} intensity={0.3} color="#17703f" />
 
         <Suspense fallback={null}>
           <SpinRig

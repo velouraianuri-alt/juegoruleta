@@ -1,31 +1,23 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { colorForNumber } from "./wheel-data";
+import { NUMBER_ROWS, buildHitZones } from "./roulette-grid-geometry";
 import { ChipStack } from "./chip-stack";
 import { cn } from "@/lib/utils";
 import type { RouletteBetType } from "@/lib/supabase/types";
-
-const NUMBER_ROWS = [
-  [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],
-  [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],
-  [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34],
-];
-
-// Each row's numbers all share one column bet — top row is column 3
-// (n % 3 === 0), middle is column 2, bottom is column 1 — matching a real
-// table's right-edge "2 to 1" strip, one cell per row instead of a separate
-// row of its own underneath.
-const ROW_COLUMN = [3, 2, 1];
 
 export interface BetTotals {
   straight: Record<number, number>;
   outside: Partial<Record<string, number>>;
 }
 
-const CELL_HOVER = { y: -3, scale: 1.05, boxShadow: "0 8px 16px -4px rgba(212,175,55,0.5), 0 0 0 1px rgba(212,175,55,0.45)" };
+const CELL_HOVER = { y: -2, scale: 1.06, boxShadow: "0 8px 16px -4px rgba(212,175,55,0.5), 0 0 0 1px rgba(212,175,55,0.45)" };
 const CELL_TAP = { scale: 0.96, y: 0 };
 const CELL_SPRING = { type: "spring" as const, stiffness: 500, damping: 26 };
+const ZONE_HOVER = { scale: 2.2, boxShadow: "0 0 8px 2px rgba(212,175,55,0.7)" };
+const ZONE_TAP = { scale: 1.6 };
 
 const ZERO_CLIP_PATH = "polygon(0% 50%, 32% 0%, 100% 0%, 100% 100%, 32% 100%)";
 
@@ -39,6 +31,7 @@ export function BettingGrid({
   totals: BetTotals;
 }) {
   const cellKey = (type: string, value: string) => `${type}:${value}`;
+  const hitZones = useMemo(() => buildHitZones(), []);
 
   return (
     <div className="felt-texture w-full rounded-2xl border-2 border-gold-500/50 p-2 shadow-[inset_0_2px_10px_rgba(0,0,0,0.4)] sm:p-3">
@@ -57,12 +50,15 @@ export function BettingGrid({
           {totals.straight[0] > 0 && <ChipStack amount={totals.straight[0]} />}
         </motion.button>
 
-        <div className="grid flex-1 grid-rows-3 gap-1">
-          {NUMBER_ROWS.map((row, i) => (
-            <div key={i} className="grid grid-cols-12 gap-1">
-              {row.map((n) => (
+        <div className="relative grid flex-1 grid-cols-12 gap-px bg-gold-200/25 p-px">
+          {NUMBER_ROWS.map((row, r) =>
+            row.map((n, c) => (
+              <div
+                key={n}
+                className="relative aspect-square bg-felt-700/50"
+                style={{ gridColumn: c + 1, gridRow: r + 1 }}
+              >
                 <motion.button
-                  key={n}
                   type="button"
                   disabled={disabled}
                   onClick={() => onBet("straight", String(n))}
@@ -70,20 +66,45 @@ export function BettingGrid({
                   whileTap={disabled ? undefined : CELL_TAP}
                   transition={CELL_SPRING}
                   className={cn(
-                    "relative flex h-8 items-center justify-center rounded-full border border-gold-200/30 text-xs font-semibold text-white disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:text-sm",
+                    "absolute inset-[8%] flex items-center justify-center rounded-full text-[10px] font-semibold text-white disabled:pointer-events-none disabled:opacity-50 sm:text-xs",
                     colorForNumber(n) === "red" ? "bg-crimson-500" : "bg-noir-800",
                   )}
                 >
                   {n}
                   {totals.straight[n] > 0 && <ChipStack amount={totals.straight[n]} />}
                 </motion.button>
-              ))}
-            </div>
-          ))}
+              </div>
+            )),
+          )}
+
+          {/* Split/corner hit-zones — betting on the shared border between two
+              numbers, or the corner where four meet, like a real table. */}
+          <div className="pointer-events-none absolute inset-0 z-10">
+            {hitZones.map((zone) => {
+              const value = zone.numbers.join(",");
+              const amount = totals.outside[cellKey(zone.type, value)];
+              return (
+                <motion.button
+                  key={zone.key}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onBet(zone.type, value)}
+                  whileHover={disabled ? undefined : ZONE_HOVER}
+                  whileTap={disabled ? undefined : ZONE_TAP}
+                  transition={CELL_SPRING}
+                  title={`${zone.type === "split" ? "División" : "Esquina"}: ${zone.numbers.join(", ")}`}
+                  className="pointer-events-auto absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold-200/70 bg-gold-100/30 disabled:pointer-events-none disabled:opacity-30 sm:size-3"
+                  style={{ left: `${zone.xPct}%`, top: `${zone.yPct}%` }}
+                >
+                  {amount ? <ChipStack amount={amount} /> : null}
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex w-9 shrink-0 flex-col gap-1 sm:w-11">
-          {ROW_COLUMN.map((c) => (
+          {[3, 2, 1].map((c) => (
             <motion.button
               key={c}
               type="button"
