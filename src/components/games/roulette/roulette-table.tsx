@@ -9,6 +9,8 @@ import { sound } from "@/lib/sound";
 import { RouletteWheel } from "./roulette-wheel";
 import { RouletteWheel3D } from "./wheel-3d/scene";
 import { useWebglSupport } from "./wheel-3d/use-webgl-support";
+import { CameraControls } from "./wheel-3d/camera-controls";
+import type { CameraPresetId } from "./wheel-3d/camera-presets";
 import { BettingGrid, type BetTotals } from "./betting-grid";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,8 @@ export function RouletteTable({
   const [spinToken, setSpinToken] = useState(0);
   const revealedFor = useRef<string | null>(null);
   const webglSupported = useWebglSupport();
+  const [cameraPreset, setCameraPreset] = useState<CameraPresetId>("classic");
+  const [cameraResetToken, setCameraResetToken] = useState(0);
 
   const isSettled = round.phase === "settled";
   const result = isSettled ? (round.result as RouletteResult | null) : null;
@@ -187,7 +191,19 @@ export function RouletteTable({
       {webglSupported === false ? (
         <RouletteWheel spinToken={spinToken} winningNumber={result?.number ?? null} />
       ) : (
-        <RouletteWheel3D spinToken={spinToken} winningNumber={result?.number ?? null} />
+        <>
+          <RouletteWheel3D
+            spinToken={spinToken}
+            winningNumber={result?.number ?? null}
+            cameraPreset={cameraPreset}
+            cameraResetToken={cameraResetToken}
+          />
+          <CameraControls
+            preset={cameraPreset}
+            onPresetChange={setCameraPreset}
+            onReset={() => setCameraResetToken((t) => t + 1)}
+          />
+        </>
       )}
 
       {isSettled && result && (

@@ -6,6 +6,8 @@ import * as THREE from "three";
 import { WheelRotor, WheelBowl } from "./wheel-mesh";
 import { Ball } from "./ball";
 import { buildSpinPlan, wheelRotationDeg, SPIN_DURATION_NORMAL_MS, type SpinPlan } from "./spin-curve";
+import { CameraRig } from "./camera-rig";
+import { CAMERA_PRESETS, type CameraPresetId } from "./camera-presets";
 import { sound } from "@/lib/sound";
 
 function SpinRig({
@@ -86,23 +88,29 @@ export function RouletteWheel3D({
   spinToken,
   winningNumber,
   durationMs = SPIN_DURATION_NORMAL_MS,
+  cameraPreset = "classic",
+  cameraResetToken = 0,
   className,
 }: {
   spinToken: number;
   winningNumber: number | null;
   durationMs?: number;
+  cameraPreset?: CameraPresetId;
+  cameraResetToken?: number;
   className?: string;
 }) {
   const dpr = useMemo<[number, number]>(() => [1, 1.75], []);
+  const initialCamera = CAMERA_PRESETS.classic;
 
   return (
     <div className={className} style={{ width: "100%", aspectRatio: "1 / 1", maxWidth: 420 }}>
       <Canvas
         shadows
         dpr={dpr}
-        camera={{ position: [0, 4.4, 5.4], fov: 38 }}
+        camera={{ position: initialCamera.position, fov: initialCamera.fov }}
         gl={{ antialias: true, alpha: true }}
       >
+        <CameraRig preset={cameraPreset} resetToken={cameraResetToken} />
         <color attach="background" args={["#05100b"]} />
         <fog attach="fog" args={["#05100b", 8, 16]} />
         <ambientLight intensity={0.35} />
