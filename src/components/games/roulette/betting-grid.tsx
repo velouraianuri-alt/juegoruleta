@@ -34,8 +34,12 @@ export function BettingGrid({
   const hitZones = useMemo(() => buildHitZones(), []);
 
   return (
-    <div className="felt-texture w-full rounded-2xl border-2 border-gold-500/50 p-2 shadow-[inset_0_2px_10px_rgba(0,0,0,0.4)] sm:p-3">
-      <div className="flex gap-1">
+    <div className="felt-texture w-full min-w-0 overflow-x-auto rounded-2xl border-2 border-gold-500/50 p-2 shadow-[inset_0_2px_10px_rgba(0,0,0,0.4)] sm:p-3">
+      {/* Fixed minimum width below `sm` so number cells stay a comfortable tap
+          target instead of shrinking to illegible slivers — the felt scrolls
+          horizontally on narrow phones instead, like a real table's rail. */}
+      <div className="min-w-[460px] sm:min-w-0">
+      <div className="flex min-w-0 gap-1">
         <motion.button
           type="button"
           disabled={disabled}
@@ -52,7 +56,7 @@ export function BettingGrid({
           </AnimatePresence>
         </motion.button>
 
-        <div className="relative grid flex-1 grid-cols-12 gap-px bg-gold-200/25 p-px">
+        <div className="relative grid min-w-0 flex-1 grid-cols-12 gap-px bg-gold-200/25 p-px">
           {NUMBER_ROWS.map((row, r) =>
             row.map((n, c) => (
               <div
@@ -133,8 +137,8 @@ export function BettingGrid({
         </div>
       </div>
 
-      <div className="mt-1 flex gap-1">
-        <div className="grid flex-1 grid-cols-3 gap-1">
+      <div className="mt-1 flex min-w-0 gap-1">
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
           {[1, 2, 3].map((d) => (
             <motion.button
               key={d}
@@ -158,8 +162,8 @@ export function BettingGrid({
         <div className="w-9 shrink-0 sm:w-11 lg:w-14" />
       </div>
 
-      <div className="mt-1 flex gap-1">
-        <div className="grid flex-1 grid-cols-6 gap-1">
+      <div className="mt-1 flex min-w-0 gap-1">
+        <div className="grid min-w-0 flex-1 grid-cols-6 gap-1">
           <motion.button
             type="button"
             disabled={disabled}
@@ -260,6 +264,7 @@ export function BettingGrid({
           </motion.button>
         </div>
         <div className="w-9 shrink-0 sm:w-11 lg:w-14" />
+      </div>
       </div>
     </div>
   );

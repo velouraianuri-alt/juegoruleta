@@ -340,12 +340,12 @@ export function RouletteTable({
       <motion.div
         layout
         className={cn(
-          "grid w-full gap-4",
+          "grid w-full grid-cols-1 gap-4",
           round.phase === "betting" ? "items-start lg:grid-cols-[300px_1fr]" : "items-center lg:grid-cols-[1fr_auto] justify-items-center",
         )}
         transition={{ layout: FOCUS_LAYOUT_TRANSITION }}
       >
-        <motion.div layout transition={{ layout: FOCUS_LAYOUT_TRANSITION }} className="flex flex-col items-center gap-2">
+        <motion.div layout transition={{ layout: FOCUS_LAYOUT_TRANSITION }} className="flex min-w-0 flex-col items-center gap-2">
           <RouletteWheel2D
             spinToken={spinToken}
             winningNumber={result?.number ?? null}
@@ -390,7 +390,7 @@ export function RouletteTable({
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1, transition: { duration: 0.25, delay: 0.15 } }}
               exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.2 } }}
-              className="flex flex-col gap-2"
+              className="flex min-w-0 w-full flex-col gap-2"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <ChipSelector value={chip} onChange={setChip} />
